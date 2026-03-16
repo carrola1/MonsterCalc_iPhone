@@ -1,0 +1,21 @@
+appId: com.andrewcarroll.MonsterCalcIPhone
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: scratchpad.title
+- assertVisible:
+    id: scratchpad.editor
+- takeScreenshot: maestro-portrait-launch
+- tapOn:
+    id: header.menu
+- assertVisible: User Guide
+- takeScreenshot: maestro-header-menu
+- tapOn:
+    id: scratchpad.editor
+- assertVisible:
+    id: keyboard.modeSelector
+- tapOn: Math
+- takeScreenshot: maestro-keyboard-math
+- tapOn: Convert
+- takeScreenshot: maestro-keyboard-convert

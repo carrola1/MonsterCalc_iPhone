@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MonsterCalc iPhone Release Notes</title>
+  <style>
+    :root {
+      --bg: #101214;
+      --panel: #1b1e20;
+      --text: #edf0e8;
+      --muted: #aab3a4;
+      --accent: #a9c33f;
+      --rule: #31363a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #15181a 0%, #0f1113 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+    h1, h2 {
+      margin: 0 0 14px;
+    }
+    h1 {
+      color: var(--accent);
+      font-size: 2rem;
+    }
+    h2 {
+      margin-top: 24px;
+      font-size: 1.2rem;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 18px;
+      padding: 18px 18px 12px;
+      margin-bottom: 16px;
+    }
+    ul {
+      margin-top: 0.3rem;
+      padding-left: 1.2rem;
+    }
+    .muted {
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Release Notes</h1>
+    <p class="muted">MonsterCalc iPhone 1.0.0.</p>
+
+    <section>
+      <h2>Version 1.0.0</h2>
+      <ul>
+        <li>Built a side-by-side scratchpad and live results layout for iPhone.</li>
+        <li>Added custom <strong>Text</strong>, <strong>Calc</strong>, <strong>Math</strong>, <strong>Convert</strong>, <strong>EE</strong>, and <strong>Prog</strong> keyboards.</li>
+        <li>Added ghost hints, line-number gutter support, and tap-to-insert <code>lineX</code> references from live results.</li>
+        <li>Added math, programming, and EE helper coverage including <code>bitpunch</code> and <code>findrdiv</code>.</li>
+        <li>Added local HTML documentation and an automated XCTest suite for the core engine and view model.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
