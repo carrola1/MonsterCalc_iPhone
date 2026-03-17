@@ -62,9 +62,10 @@ final class ScratchpadViewModelTests: XCTestCase {
         XCTAssertFalse(firstModel.results.isEmpty)
 
         let secondModel = ScratchpadViewModel(defaults: defaults)
-        XCTAssertEqual(secondModel.text, "")
-        XCTAssertTrue(secondModel.results.allSatisfy(\.isEmpty))
+        XCTAssertEqual(secondModel.text, DemoSheet.text)
+        XCTAssertFalse(secondModel.results.isEmpty)
 
+        secondModel.clear()
         secondModel.loadDemo()
         XCTAssertEqual(secondModel.text, DemoSheet.text)
         XCTAssertFalse(secondModel.results.isEmpty)

@@ -353,6 +353,81 @@ struct ScratchpadEngine {
             let tolerance = arguments.count > 2 ? try requireNumberArgument(arguments, 2) : 1.0
             let (r1, r2) = try findResistorDivider(vin: vin, vout: vout, tolerance: tolerance)
             return .text("[\(r1), \(r2)]")
+        case "findv":
+            let current = try requireNumberArgument(arguments, 0)
+            let resistance = try requireNumberArgument(arguments, 1)
+            return .number(current * resistance)
+        case "findi":
+            let voltage = try requireNumberArgument(arguments, 0)
+            let resistance = try requireNumberArgument(arguments, 1)
+            guard resistance != 0 else {
+                throw ParserError.invalidArguments("resistance must be non-zero")
+            }
+            return .number(voltage / resistance)
+        case "findr":
+            let voltage = try requireNumberArgument(arguments, 0)
+            let current = try requireNumberArgument(arguments, 1)
+            guard current != 0 else {
+                throw ParserError.invalidArguments("current must be non-zero")
+            }
+            return .number(voltage / current)
+        case "xc":
+            let frequency = try requirePositiveNumberArgument(arguments, 0, name: "frequency")
+            let capacitance = try requirePositiveNumberArgument(arguments, 1, name: "capacitance")
+            return .number(1 / (2 * .pi * frequency * capacitance))
+        case "xl":
+            let frequency = try requirePositiveNumberArgument(arguments, 0, name: "frequency")
+            let inductance = try requirePositiveNumberArgument(arguments, 1, name: "inductance")
+            return .number(2 * .pi * frequency * inductance)
+        case "db":
+            let value1 = try requirePositiveNumberArgument(arguments, 0, name: "value1")
+            let value2 = try requirePositiveNumberArgument(arguments, 1, name: "value2")
+            return .number(20 * log10(value1 / value2))
+        case "db10":
+            let value1 = try requirePositiveNumberArgument(arguments, 0, name: "value1")
+            let value2 = try requirePositiveNumberArgument(arguments, 1, name: "value2")
+            return .number(10 * log10(value1 / value2))
+        case "fc_rc":
+            let resistance = try requirePositiveNumberArgument(arguments, 0, name: "resistance")
+            let capacitance = try requirePositiveNumberArgument(arguments, 1, name: "capacitance")
+            return .number(1 / (2 * .pi * resistance * capacitance))
+        case "tau":
+            let resistance = try requirePositiveNumberArgument(arguments, 0, name: "resistance")
+            let capacitance = try requirePositiveNumberArgument(arguments, 1, name: "capacitance")
+            return .number(resistance * capacitance)
+        case "rc_charge":
+            let vin = try requireNumberArgument(arguments, 0)
+            let time = try requireNonNegativeNumberArgument(arguments, 1, name: "time")
+            let resistance = try requirePositiveNumberArgument(arguments, 2, name: "resistance")
+            let capacitance = try requirePositiveNumberArgument(arguments, 3, name: "capacitance")
+            let tau = resistance * capacitance
+            return .number(vin * (1 - exp(-time / tau)))
+        case "rc_discharge":
+            let v0 = try requireNumberArgument(arguments, 0)
+            let time = try requireNonNegativeNumberArgument(arguments, 1, name: "time")
+            let resistance = try requirePositiveNumberArgument(arguments, 2, name: "resistance")
+            let capacitance = try requirePositiveNumberArgument(arguments, 3, name: "capacitance")
+            let tau = resistance * capacitance
+            return .number(v0 * exp(-time / tau))
+        case "ledr":
+            let supply = try requireNumberArgument(arguments, 0)
+            let ledDrop = try requireNumberArgument(arguments, 1)
+            let current = try requirePositiveNumberArgument(arguments, 2, name: "current")
+            return .number((supply - ledDrop) / current)
+        case "adc":
+            let voltage = try requireNumberArgument(arguments, 0)
+            let reference = try requirePositiveNumberArgument(arguments, 1, name: "reference")
+            let bits = try requireBitDepth(arguments, 2)
+            let fullScale = Double((1 << bits) - 1)
+            let normalized = min(max(voltage / reference, 0), 1)
+            return .number(round(normalized * fullScale))
+        case "dac":
+            let code = try requireNonNegativeNumberArgument(arguments, 0, name: "code")
+            let reference = try requirePositiveNumberArgument(arguments, 1, name: "reference")
+            let bits = try requireBitDepth(arguments, 2)
+            let fullScale = Double((1 << bits) - 1)
+            let clampedCode = min(code, fullScale)
+            return .number((clampedCode / fullScale) * reference)
         default:
             throw ParserError.unknownIdentifier(name)
         }
@@ -385,6 +460,30 @@ struct ScratchpadEngine {
 
     private func requireIntegerArgument(_ arguments: [CalculatorValue], _ index: Int) throws -> Int {
         Int(floor(try requireNumberArgument(arguments, index)))
+    }
+
+    private func requirePositiveNumberArgument(_ arguments: [CalculatorValue], _ index: Int, name: String) throws -> Double {
+        let value = try requireNumberArgument(arguments, index)
+        guard value > 0 else {
+            throw ParserError.invalidArguments("\(name) must be positive")
+        }
+        return value
+    }
+
+    private func requireNonNegativeNumberArgument(_ arguments: [CalculatorValue], _ index: Int, name: String) throws -> Double {
+        let value = try requireNumberArgument(arguments, index)
+        guard value >= 0 else {
+            throw ParserError.invalidArguments("\(name) must be non-negative")
+        }
+        return value
+    }
+
+    private func requireBitDepth(_ arguments: [CalculatorValue], _ index: Int) throws -> Int {
+        let bits = try requireIntegerArgument(arguments, index)
+        guard bits > 0 && bits < Int.bitWidth else {
+            throw ParserError.invalidArguments("bits must be between 1 and \(Int.bitWidth - 1)")
+        }
+        return bits
     }
 
     private func bitget(_ arguments: [CalculatorValue]) throws -> String {

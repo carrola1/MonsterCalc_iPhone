@@ -167,6 +167,13 @@ It includes:
 - `rpar`
 - `findres`
 - `findrdiv`
+- `findv`, `findi`, `findr`
+- `xc`, `xl`
+- `db`, `db10`
+- `fc_rc`, `tau`
+- `rc_charge`, `rc_discharge`
+- `ledr`
+- `adc`, `dac`
 
 ### Still In Progress
 

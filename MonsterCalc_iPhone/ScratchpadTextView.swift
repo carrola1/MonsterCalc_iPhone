@@ -298,7 +298,64 @@ private let eeKeyboardPage = KeyboardPage(title: "EE", keys: [
     KeyboardKey(label: "vdiv", action: .insert("vdiv("), description: "Voltage divider out (vin, R1, R2)"),
     KeyboardKey(label: "rpar", action: .insert("rpar("), description: "Parallel resistor calc"),
     KeyboardKey(label: "findres", action: .insert("findres("), description: "Closest standard resistor"),
-    KeyboardKey(label: "findrdiv", action: .insert("findrdiv("), description: "Find resistor divider values", span: 2),
+    KeyboardKey(label: "findrdiv", action: .insert("findrdiv("), description: "Find resistor divider values"),
+    KeyboardKey(
+        label: "Ohm's",
+        action: .none,
+        description: "Voltage, current, resistance helpers",
+        menuOptions: [
+            KeyboardKey(label: "findv", action: .insert("findv("), description: "Find voltage (current, resistance)"),
+            KeyboardKey(label: "findi", action: .insert("findi("), description: "Find current (voltage, resistance)"),
+            KeyboardKey(label: "findr", action: .insert("findr("), description: "Find resistance (voltage, current)"),
+        ]
+    ),
+    KeyboardKey(
+        label: "AC",
+        action: .none,
+        description: "Reactance helpers",
+        menuOptions: [
+            KeyboardKey(label: "xc", action: .insert("xc("), description: "Capacitive reactance (f, C)"),
+            KeyboardKey(label: "xl", action: .insert("xl("), description: "Inductive reactance (f, L)"),
+        ]
+    ),
+    KeyboardKey(
+        label: "dB",
+        action: .none,
+        description: "Voltage and power ratio dB helpers",
+        menuOptions: [
+            KeyboardKey(label: "db", action: .insert("db("), description: "Voltage ratio in dB (v1, v2)"),
+            KeyboardKey(label: "db10", action: .insert("db10("), description: "Power ratio in dB (p1, p2)"),
+        ]
+    ),
+    KeyboardKey(
+        label: "RC",
+        action: .none,
+        description: "RC filter and transient helpers",
+        menuOptions: [
+            KeyboardKey(label: "fc_rc", action: .insert("fc_rc("), description: "RC cutoff frequency (R, C)"),
+            KeyboardKey(label: "tau", action: .insert("tau("), description: "RC time constant (R, C)"),
+            KeyboardKey(label: "rc_charge", action: .insert("rc_charge("), description: "RC charge voltage (vin, t, R, C)"),
+            KeyboardKey(label: "rc_discharge", action: .insert("rc_discharge("), description: "RC discharge voltage (v0, t, R, C)"),
+        ]
+    ),
+    KeyboardKey(label: "ledr", action: .insert("ledr("), description: "LED series resistor (Vs, Vf, I)"),
+    KeyboardKey(
+        label: "Conv",
+        action: .none,
+        description: "ADC and DAC helpers",
+        menuOptions: [
+            KeyboardKey(label: "adc", action: .insert("adc("), description: "ADC code (vin, vref, bits)"),
+            KeyboardKey(label: "dac", action: .insert("dac("), description: "DAC output (code, vref, bits)"),
+        ]
+    ),
+    KeyboardKey(
+        label: "⌫",
+        action: .backspace,
+        description: "Delete backward",
+        menuOptions: [
+            KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
+        ]
+    ),
 ])
 
 private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
@@ -555,7 +612,7 @@ final class MonsterKeyboardView: UIView {
         autoresizingMask = [.flexibleHeight]
         translatesAutoresizingMaskIntoConstraints = false
         isOpaque = true
-        backgroundColor = UIColor(red: 0.17, green: 0.18, blue: 0.19, alpha: 1.0)
+        backgroundColor = UIColor(red: 0.12, green: 0.125, blue: 0.133, alpha: 1.0)
         setup()
     }
 
@@ -595,7 +652,7 @@ final class MonsterKeyboardView: UIView {
 
     private func setup() {
         backgroundPanel.translatesAutoresizingMaskIntoConstraints = false
-        backgroundPanel.backgroundColor = UIColor(red: 0.17, green: 0.18, blue: 0.19, alpha: 1.0)
+        backgroundPanel.backgroundColor = UIColor(red: 0.12, green: 0.125, blue: 0.133, alpha: 1.0)
 
         overlayDismissControl.translatesAutoresizingMaskIntoConstraints = false
         overlayDismissControl.backgroundColor = .clear
@@ -606,7 +663,7 @@ final class MonsterKeyboardView: UIView {
 
         segmentedControl.translatesAutoresizingMaskIntoConstraints = false
         segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        segmentedControl.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         segmentedControl.selectedSegmentTintColor = ScratchpadStyle.accent
         segmentedControl.accessibilityIdentifier = "keyboard.modeSelector"
         segmentedControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
@@ -624,7 +681,7 @@ final class MonsterKeyboardView: UIView {
             dismissButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
         }
         dismissButton.tintColor = UIColor.white.withAlphaComponent(0.88)
-        dismissButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        dismissButton.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         dismissButton.layer.cornerRadius = 9
         dismissButton.accessibilityIdentifier = "keyboard.dismiss"
         dismissButton.accessibilityLabel = "Dismiss keyboard"
@@ -947,6 +1004,14 @@ final class MonsterKeyboardView: UIView {
         }
 
         switch pageModel.title {
+        case "EE":
+            return [
+                KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("findrdiv"), key("Ohm's"), key("AC")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("dB"), key("RC"), key("ledr")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("Conv")], columns: 1, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("⌫")], columns: 1, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+            ]
         case "Prog":
             return [
                 KeyboardRowSpec(keys: [key("0x"), key("0"), key("2-9"), key("<<"), key("hex")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
@@ -989,7 +1054,8 @@ final class MonsterKeyboardView: UIView {
             ]
         case "EE":
             return [
-                KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres"), key("findrdiv", span: 2)], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres"), key("findrdiv"), key("Ohm's"), key("AC")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("dB"), key("RC", span: 2), key("ledr"), key("Conv"), key("⌫")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         case "Prog":
             return [
@@ -1170,8 +1236,8 @@ final class MonsterKeyboardView: UIView {
         let isActiveShiftKey = isShiftKey && isTextShiftEnabled
         button.setTitleColor(isLabel ? ScratchpadStyle.accent : (isActiveShiftKey ? .black : .white), for: .normal)
         button.backgroundColor = isLabel
-            ? UIColor(red: 0.20, green: 0.21, blue: 0.22, alpha: 1.0)
-            : (isActiveShiftKey ? ScratchpadStyle.accent : UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0))
+            ? UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 1.0)
+            : (isActiveShiftKey ? ScratchpadStyle.accent : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0))
         button.layer.cornerRadius = 10
         button.accessibilityIdentifier = key.label
         if isLabel {
@@ -1244,7 +1310,7 @@ final class MonsterKeyboardView: UIView {
 
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = UIColor(red: 0.20, green: 0.21, blue: 0.22, alpha: 0.98)
+        container.backgroundColor = UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 0.98)
         container.layer.cornerRadius = 12
         container.layer.borderWidth = 1
         container.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
@@ -1265,7 +1331,7 @@ final class MonsterKeyboardView: UIView {
             optionButton.setTitle(option.label, for: .normal)
             optionButton.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: 15, weight: .semibold)
             optionButton.setTitleColor(.white, for: .normal)
-            optionButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+            optionButton.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
             optionButton.layer.cornerRadius = 10
             optionButton.addAction(UIAction { [weak self] _ in
                 self?.selectExpansionOption(option)
@@ -1356,7 +1422,7 @@ final class MonsterKeyboardView: UIView {
     private func setExpansionOptionButton(_ button: ExpansionOptionButton, highlighted: Bool) {
         button.backgroundColor = highlighted
             ? ScratchpadStyle.accent
-            : UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+            : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         button.setTitleColor(highlighted ? .black : .white, for: .normal)
     }
 
@@ -1612,7 +1678,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
 
     private func configurePicker(_ picker: UIPickerView, tag: Int) {
         picker.translatesAutoresizingMaskIntoConstraints = false
-        picker.backgroundColor = UIColor(red: 0.20, green: 0.21, blue: 0.22, alpha: 1.0)
+        picker.backgroundColor = UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 1.0)
         picker.layer.cornerRadius = 10
         picker.clipsToBounds = true
         picker.tag = tag
@@ -1635,7 +1701,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.72
         button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        button.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         button.layer.cornerRadius = 10
         button.menu = menu
         button.showsMenuAsPrimaryAction = false
@@ -1649,7 +1715,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         button.setTitle("⌫", for: .normal)
         button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: compactLayout ? 18 : 22, weight: .semibold)
         button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        button.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         button.layer.cornerRadius = 10
         button.expansionOptions = [
             KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
@@ -1700,7 +1766,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
 
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = UIColor(red: 0.20, green: 0.21, blue: 0.22, alpha: 0.98)
+        container.backgroundColor = UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 0.98)
         container.layer.cornerRadius = 12
         container.layer.borderWidth = 1
         container.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
@@ -1711,7 +1777,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         optionButton.setTitle("Line", for: .normal)
         optionButton.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: 15, weight: .semibold)
         optionButton.setTitleColor(.white, for: .normal)
-        optionButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        optionButton.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         optionButton.layer.cornerRadius = 10
         optionButton.addAction(UIAction { [weak self] _ in
             self?.onClearLine()
@@ -1758,7 +1824,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
 
         let frame = optionButton.convert(optionButton.bounds, to: overlayDismissControl).insetBy(dx: -6, dy: -10)
         let highlighted = frame.contains(point)
-        optionButton.backgroundColor = highlighted ? ScratchpadStyle.accent : UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        optionButton.backgroundColor = highlighted ? ScratchpadStyle.accent : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         optionButton.setTitleColor(highlighted ? .black : .white, for: .normal)
         if highlighted {
             onHintChange("Clear current line")
@@ -1818,11 +1884,11 @@ private enum ScratchpadStyle {
     static let insets = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
     static let gutterInsets = UIEdgeInsets(top: 12, left: 0, bottom: 12, right: 6)
     static let extraBottomScrollInset = ceil(font.lineHeight * 2)
-    static let background = UIColor(red: 0.14, green: 0.145, blue: 0.153, alpha: 1.0)
-    static let gutterBackground = UIColor(red: 0.12, green: 0.125, blue: 0.132, alpha: 1.0)
+    static let background = UIColor(red: 0.10, green: 0.105, blue: 0.112, alpha: 1.0)
+    static let gutterBackground = UIColor(red: 0.08, green: 0.085, blue: 0.092, alpha: 1.0)
     static let text = UIColor.white
     static let secondaryText = UIColor(red: 0.78, green: 0.81, blue: 0.84, alpha: 1.0)
-    static let accent = UIColor(red: 0.62, green: 0.68, blue: 0.26, alpha: 1.0)
+    static let accent = UIColor(red: 0.56, green: 0.67, blue: 0.14, alpha: 1.0)
     static let divider = UIColor.white.withAlphaComponent(0.08)
     static let functionColor = UIColor(red: 1.0, green: 0.82, blue: 0.40, alpha: 1.0)
     static let operatorColor = UIColor(red: 0.48, green: 0.87, blue: 0.95, alpha: 1.0)
@@ -1836,7 +1902,8 @@ private enum ScratchpadStyle {
 private let functionNames = [
     "floor", "ceil", "min", "max", "sum", "sqrt", "abs", "log", "log10", "log2", "exp",
     "sin", "cos", "tan", "asin", "acos", "atan", "rad", "deg", "cdf", "pdf", "findres",
-    "findrdiv",
+    "findrdiv", "findv", "findi", "findr", "xc", "xl", "db", "db10", "fc_rc", "tau", "rc_charge",
+    "rc_discharge", "ledr", "adc", "dac",
     "vdiv", "rpar", "hex", "bin", "bitget", "bitpunch", "a2h", "h2a",
 ]
 
@@ -1877,11 +1944,25 @@ private let inlineFunctionSignatures: [String: String] = [
     "rpar": "(R1, R2)",
     "findres": "(value)",
     "findrdiv": "(vin, vout, tol)",
+    "findv": "(current, resistance)",
+    "findi": "(voltage, resistance)",
+    "findr": "(voltage, current)",
+    "xc": "(freq, cap)",
+    "xl": "(freq, ind)",
+    "db": "(value1, value2)",
+    "db10": "(value1, value2)",
+    "fc_rc": "(R, C)",
+    "tau": "(R, C)",
+    "rc_charge": "(vin, t, R, C)",
+    "rc_discharge": "(v0, t, R, C)",
+    "ledr": "(Vs, Vf, I)",
+    "adc": "(vin, vref, bits)",
+    "dac": "(code, vref, bits)",
     "hex": "(value)",
     "bin": "(value)",
     "bitget": "(value, msb, lsb)",
     "bitpunch": "(value, bit, state)",
-    "a2h": "(\"text\")",
+    "a2h": "(text)",
     "h2a": "(value)",
 ]
 

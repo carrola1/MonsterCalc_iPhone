@@ -239,8 +239,8 @@ struct ContentView: View {
                 ZStack {
                     LinearGradient(
                         colors: [
-                            Color(red: 0.16, green: 0.17, blue: 0.18),
-                            Color(red: 0.09, green: 0.10, blue: 0.11),
+                            Color(red: 0.12, green: 0.13, blue: 0.14),
+                            Color(red: 0.04, green: 0.05, blue: 0.06),
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -306,7 +306,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("MONSTER CALC")
                     .font(.system(size: compactHeader ? 19 : 22, weight: .bold, design: .serif))
-                    .foregroundStyle(Color(red: 0.66, green: 0.77, blue: 0.25))
+                    .foregroundStyle(Color(red: 0.56, green: 0.67, blue: 0.14))
             }
 
             Spacer()
@@ -482,7 +482,7 @@ struct ContentView: View {
                     }
                 )
                 .frame(width: resultsWidth, height: workspaceHeight)
-                .background(Color(red: 0.14, green: 0.145, blue: 0.153))
+                .background(Color(red: 0.10, green: 0.105, blue: 0.112))
             }
         }
         .background(cardBackground)
@@ -498,7 +498,7 @@ struct ContentView: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color(red: 0.19, green: 0.20, blue: 0.21))
+            .fill(Color(red: 0.15, green: 0.16, blue: 0.17))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
