@@ -45,6 +45,7 @@ enum Token: Equatable {
     case pipe
     case ampersand
     case xorKeyword
+    case tilde
     case shiftLeft
     case shiftRight
     case end
@@ -176,6 +177,9 @@ struct ExpressionParser {
         case .minus:
             advance()
             return .number(-(try requireNumber(try parseUnary())))
+        case .tilde:
+            advance()
+            return .number(Double(~(try requireInteger(try parseUnary()))))
         default:
             return try parsePrimary()
         }
@@ -355,6 +359,12 @@ private struct Tokenizer {
 
             if character == "&" {
                 tokens.append(.ampersand)
+                index = text.index(after: index)
+                continue
+            }
+
+            if character == "~" {
+                tokens.append(.tilde)
                 index = text.index(after: index)
                 continue
             }

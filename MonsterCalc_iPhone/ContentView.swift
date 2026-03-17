@@ -76,12 +76,7 @@ final class ScratchpadViewModel: ObservableObject {
 
     var resultsText: String {
         results
-            .map { result in
-                if let error = result.error, !error.isEmpty {
-                    return error
-                }
-                return result.display
-            }
+            .map(\.display)
             .joined(separator: "\n")
     }
 

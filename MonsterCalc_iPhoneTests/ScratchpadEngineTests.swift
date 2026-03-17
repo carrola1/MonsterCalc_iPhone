@@ -79,6 +79,24 @@ final class ScratchpadEngineTests: XCTestCase {
         }
     }
 
+    func testInvalidOrUnknownLinesStayBlank() {
+        let results = engine.evaluateDocument(
+            """
+            missing_name
+            5 + )
+            70 F to
+            bitget(0xFF,)
+            """
+        )
+
+        XCTAssertEqual(results.count, 4)
+        for result in results {
+            XCTAssertEqual(result.display, "")
+            XCTAssertNil(result.error)
+            XCTAssertNil(result.value)
+        }
+    }
+
     func testMathHelpersAndProbabilityFunctions() {
         let results = engine.evaluateDocument(
             """
@@ -144,9 +162,12 @@ final class ScratchpadEngineTests: XCTestCase {
             """
         )
 
+        XCTAssertEqual(results[0].display, "21.111 C")
         XCTAssertEqual(results[0].value?.numberValue ?? 0, 21.111111, accuracy: 0.0005)
+        XCTAssertEqual(results[1].display, "1 in")
         XCTAssertEqual(results[1].value?.numberValue ?? 0, 1.0, accuracy: 0.000001)
         XCTAssertEqual(results[2].value?.numberValue ?? 0, 2.0, accuracy: 0.000001)
+        XCTAssertEqual(results[3].display, "50.8 mm")
         XCTAssertEqual(results[3].value?.numberValue ?? 0, 50.8, accuracy: 0.000001)
     }
 
@@ -155,11 +176,13 @@ final class ScratchpadEngineTests: XCTestCase {
             """
             2 ^ 3
             7 xor 3
+            ~0
             """
         )
 
         XCTAssertEqual(results[0].value?.numberValue ?? 0, 8, accuracy: 0.000001)
         XCTAssertEqual(results[1].value?.numberValue ?? 0, 4, accuracy: 0.000001)
+        XCTAssertEqual(results[2].value?.numberValue ?? 0, -1, accuracy: 0.000001)
     }
 
     func testHexBinaryAndEngineeringNotationInputsParse() {

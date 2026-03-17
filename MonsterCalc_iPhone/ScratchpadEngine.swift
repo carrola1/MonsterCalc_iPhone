@@ -99,37 +99,25 @@ struct ScratchpadEngine {
 
         if let assignment = parseAssignment(cleaned) {
             do {
-                let value = try evaluateExpression(assignment.expression, context: context)
+                let evaluation = try evaluateDisplayValue(assignment.expression, context: context)
                 return LineResult(
                     id: lineNumber,
                     lineNumber: lineNumber,
                     source: line,
                     expression: assignment.expression,
-                    display: format(value),
+                    display: evaluation.display,
                     error: nil,
                     assignmentName: assignment.name,
-                    value: value
+                    value: evaluation.value
                 )
             } catch {
-                if shouldSuppressError(error, for: assignment.expression) {
-                    return LineResult(
-                        id: lineNumber,
-                        lineNumber: lineNumber,
-                        source: line,
-                        expression: assignment.expression,
-                        display: "",
-                        error: nil,
-                        assignmentName: assignment.name,
-                        value: nil
-                    )
-                }
                 return LineResult(
                     id: lineNumber,
                     lineNumber: lineNumber,
                     source: line,
                     expression: assignment.expression,
                     display: "",
-                    error: error.localizedDescription,
+                    error: nil,
                     assignmentName: assignment.name,
                     value: nil
                 )
@@ -137,41 +125,47 @@ struct ScratchpadEngine {
         }
 
         do {
-            let value = try evaluateExpression(cleaned, context: context)
+            let evaluation = try evaluateDisplayValue(cleaned, context: context)
             return LineResult(
                 id: lineNumber,
                 lineNumber: lineNumber,
                 source: line,
                 expression: cleaned,
-                display: format(value),
+                display: evaluation.display,
                 error: nil,
                 assignmentName: nil,
-                value: value
+                value: evaluation.value
             )
         } catch {
-            if shouldSuppressError(error, for: cleaned) {
-                return LineResult(
-                    id: lineNumber,
-                    lineNumber: lineNumber,
-                    source: line,
-                    expression: cleaned,
-                    display: "",
-                    error: nil,
-                    assignmentName: nil,
-                    value: nil
-                )
-            }
             return LineResult(
                 id: lineNumber,
                 lineNumber: lineNumber,
                 source: line,
                 expression: cleaned,
                 display: "",
-                error: error.localizedDescription,
+                error: nil,
                 assignmentName: nil,
                 value: nil
             )
         }
+    }
+
+    private func evaluateDisplayValue(_ expression: String, context: EvaluationContext) throws -> (value: CalculatorValue, display: String) {
+        if let conversion = parseConversion(expression) {
+            var parser = ExpressionParser(
+                text: conversion.valueExpression,
+                context: context,
+                functionProvider: evaluateFunction(name:arguments:)
+            )
+            let sourceValue = try parser.parseAndEvaluate()
+            let numericValue = try requireNumber(sourceValue)
+            let converted = try convert(value: numericValue, from: conversion.fromUnit, to: conversion.toUnit)
+            let value = CalculatorValue.number(converted)
+            return (value, "\(format(value)) \(conversion.toUnit)")
+        }
+
+        let value = try evaluateExpression(expression, context: context)
+        return (value, format(value))
     }
 
     private func evaluateExpression(_ expression: String, context: EvaluationContext) throws -> CalculatorValue {
@@ -269,93 +263,6 @@ struct ScratchpadEngine {
         }
 
         return line
-    }
-
-    private func shouldSuppressError(_ error: Error, for expression: String) -> Bool {
-        let trimmed = expression.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return true
-        }
-
-        if let parserError = error as? ParserError {
-            switch parserError {
-            case .unexpectedEnd:
-                return true
-            case .unexpectedToken:
-                return looksIncomplete(trimmed)
-            case let .unknownIdentifier(name):
-                return looksIncomplete(trimmed) || looksLikePartialFunctionArgument(trimmed, identifier: name)
-            default:
-                return false
-            }
-        }
-
-        return false
-    }
-
-    private func looksLikePartialFunctionArgument(_ expression: String, identifier: String) -> Bool {
-        guard expression.contains("("),
-              expression.hasSuffix(")"),
-              expression.range(of: #"^[A-Za-z_]\w*\(.*\)$"#, options: .regularExpression) != nil
-        else {
-            return false
-        }
-
-        let escapedIdentifier = NSRegularExpression.escapedPattern(for: identifier)
-        let trailingArgumentPatterns = [
-            #"\#(escapedIdentifier)\s*\)$"#,
-            #"\#(escapedIdentifier)\s*,"#,
-        ]
-
-        return trailingArgumentPatterns.contains { pattern in
-            expression.range(of: pattern, options: .regularExpression) != nil
-        }
-    }
-
-    private func looksIncomplete(_ expression: String) -> Bool {
-        let trimmed = expression.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-
-        if looksLikePartialConversion(trimmed) {
-            return true
-        }
-
-        if trimmed.hasSuffix("(") || trimmed.hasSuffix(",") {
-            return true
-        }
-
-        if let last = trimmed.last, "+-*/%&|^=<".contains(last) {
-            return true
-        }
-
-        var balance = 0
-        for char in trimmed {
-            if char == "(" { balance += 1 }
-            if char == ")" { balance -= 1 }
-        }
-        if balance > 0 {
-            return true
-        }
-
-        if trimmed.range(of: #"^[A-Za-z_]\w*$"#, options: .regularExpression) != nil {
-            return true
-        }
-
-        if trimmed.range(of: #"^[A-Za-z_]\w*\([^)]*$"#, options: .regularExpression) != nil {
-            return true
-        }
-
-        return false
-    }
-
-    private func looksLikePartialConversion(_ expression: String) -> Bool {
-        if expression.range(of: #"^\s*.+\s+[A-Za-z][A-Za-z0-9]*\s*$"#, options: .regularExpression) != nil {
-            return true
-        }
-        if expression.range(of: #"^\s*.+\s+[A-Za-z][A-Za-z0-9]*\s+to\s*$"#, options: .regularExpression) != nil {
-            return true
-        }
-        return false
     }
 
     private func evaluateFunction(name: String, arguments: [CalculatorValue]) throws -> CalculatorValue {

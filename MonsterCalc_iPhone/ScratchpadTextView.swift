@@ -3,6 +3,7 @@ import UIKit
 
 final class NonWrappingTextView: UITextView {
     fileprivate var onPreferredWidthChange: ((CGFloat) -> Void)?
+    var keepsWideTextContainer = false
     private var preferredContentWidth: CGFloat = 0
 
     override init(frame: CGRect, textContainer: NSTextContainer?) {
@@ -33,6 +34,10 @@ final class NonWrappingTextView: UITextView {
         currentLines().map(measuredLineWidth).max() ?? 0
     }
 
+    fileprivate func currentPreferredContentWidth() -> CGFloat {
+        preferredContentWidth
+    }
+
     fileprivate func caretXPosition() -> CGFloat {
         guard let selectedTextRange else {
             return textContainerInset.left
@@ -51,15 +56,22 @@ final class NonWrappingTextView: UITextView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        textContainer.widthTracksTextView = true
         textContainer.lineBreakMode = .byClipping
-        layoutManager.ensureLayout(for: textContainer)
         let horizontalInsets = textContainerInset.left + textContainerInset.right + (textContainer.lineFragmentPadding * 2)
         let verticalInsets = textContainerInset.top + textContainerInset.bottom
         let contentWidth = max(
             bounds.width + 1,
             ceil(max(longestLineWidth(), caretXPosition()) + horizontalInsets + 48)
         )
+
+        if keepsWideTextContainer {
+            textContainer.widthTracksTextView = false
+            textContainer.size = CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude)
+        } else {
+            textContainer.widthTracksTextView = true
+        }
+
+        layoutManager.ensureLayout(for: textContainer)
 
         if abs(preferredContentWidth - contentWidth) > 0.5 {
             preferredContentWidth = contentWidth
@@ -199,7 +211,20 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
     KeyboardKey(label: ".", action: .insert("."), description: "Decimal point"),
     KeyboardKey(label: ",", action: .insert(","), description: "Comma"),
     KeyboardKey(label: "=", action: .insert(" = "), description: "Assignment equals"),
-    KeyboardKey(label: "ans", action: .insert("ans"), description: "Previous result"),
+    KeyboardKey(
+        label: "ENG",
+        action: .none,
+        description: "Engineering notation prefixes",
+        menuOptions: [
+            KeyboardKey(label: "p", action: .insert("p"), description: "Pico (1e-12)"),
+            KeyboardKey(label: "n", action: .insert("n"), description: "Nano (1e-9)"),
+            KeyboardKey(label: "μ", action: .insert("u"), description: "Micro (1e-6)"),
+            KeyboardKey(label: "m", action: .insert("m"), description: "Milli (1e-3)"),
+            KeyboardKey(label: "k", action: .insert("k"), description: "Kilo (1e3)"),
+            KeyboardKey(label: "M", action: .insert("M"), description: "Mega (1e6)"),
+            KeyboardKey(label: "G", action: .insert("G"), description: "Giga (1e9)"),
+        ]
+    ),
     KeyboardKey(label: "<-", action: .moveLeft, description: "Move cursor left"),
     KeyboardKey(label: "->", action: .moveRight, description: "Move cursor right"),
     KeyboardKey(
@@ -223,20 +248,6 @@ private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
     KeyboardKey(label: "π", action: .insert("pi"), description: "Pi constant"),
     KeyboardKey(label: "E", action: .insert("e"), description: "Euler's number"),
     KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number"),
-    KeyboardKey(
-        label: "ENG",
-        action: .none,
-        description: "Engineering notation prefixes",
-        menuOptions: [
-            KeyboardKey(label: "p", action: .insert("p"), description: "Pico (1e-12)"),
-            KeyboardKey(label: "n", action: .insert("n"), description: "Nano (1e-9)"),
-            KeyboardKey(label: "u", action: .insert("u"), description: "Micro (1e-6)"),
-            KeyboardKey(label: "m", action: .insert("m"), description: "Milli (1e-3)"),
-            KeyboardKey(label: "k", action: .insert("k"), description: "Kilo (1e3)"),
-            KeyboardKey(label: "M", action: .insert("M"), description: "Mega (1e6)"),
-            KeyboardKey(label: "G", action: .insert("G"), description: "Giga (1e9)"),
-        ]
-    ),
     KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root"),
     KeyboardKey(label: "^", action: .insert("^"), description: "Exponent"),
     KeyboardKey(label: "%", action: .insert("%"), description: "Modulus"),
@@ -335,7 +346,7 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
     ),
     KeyboardKey(label: "<<", action: .insert(" << "), description: "Shift left"),
     KeyboardKey(label: ">>", action: .insert(" >> "), description: "Shift right"),
-    KeyboardKey(label: "to", action: .insert(" to "), description: "Unit conversion"),
+    KeyboardKey(label: "~", action: .insert("~"), description: "Bitwise NOT"),
     KeyboardKey(label: "hex", action: .insert("hex("), description: "Convert to hex"),
     KeyboardKey(label: "bin", action: .insert("bin("), description: "Convert to binary"),
     KeyboardKey(label: "bitget", action: .insert("bitget("), description: "Bit slice (value, msb, lsb)"),
@@ -605,13 +616,16 @@ final class MonsterKeyboardView: UIView {
         dismissButton.translatesAutoresizingMaskIntoConstraints = false
         if #available(iOS 15.0, *) {
             dismissButton.setImage(UIImage(systemName: "keyboard.chevron.compact.down"), for: .normal)
+            var config = UIButton.Configuration.plain()
+            config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+            dismissButton.configuration = config
         } else {
             dismissButton.setTitle("⌄", for: .normal)
+            dismissButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
         }
         dismissButton.tintColor = UIColor.white.withAlphaComponent(0.88)
         dismissButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
         dismissButton.layer.cornerRadius = 9
-        dismissButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
         dismissButton.accessibilityIdentifier = "keyboard.dismiss"
         dismissButton.accessibilityLabel = "Dismiss keyboard"
         dismissButton.addAction(UIAction { [weak self] _ in
@@ -836,8 +850,9 @@ final class MonsterKeyboardView: UIView {
                 keys: [
                     KeyboardKey(label: "#", action: .insert("# "), description: "Insert comment"),
                     KeyboardKey(label: "ans", action: .insert("ans"), description: "Previous result"),
-                    KeyboardKey(label: "line", action: .insert("line"), description: "Insert line reference", span: 2),
-                    KeyboardKey(label: "\"", action: .insert("\""), description: "Insert quote"),
+                    KeyboardKey(label: "/", action: .insert("/"), description: "Insert slash"),
+                    KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
+                    KeyboardKey(label: ")", action: .insert(")"), description: "Right parenthesis"),
                     KeyboardKey(label: "_", action: .insert("_"), description: "Insert underscore"),
                     KeyboardKey(label: ".", action: .insert("."), description: "Insert period"),
                     KeyboardKey(label: ",", action: .insert(","), description: "Insert comma"),
@@ -936,7 +951,7 @@ final class MonsterKeyboardView: UIView {
             return [
                 KeyboardRowSpec(keys: [key("0x"), key("0"), key("2-9"), key("<<"), key("hex")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("0b"), key("1"), key("A-F"), key(">>"), key("bin")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitpunch", span: 2), key("to")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitpunch", span: 2), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("a2h"), key("h2a"), key("xor"), key("("), key(")"), key(",")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("␣", span: 4), key("⌫"), key("↵")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
             ]
@@ -963,12 +978,12 @@ final class MonsterKeyboardView: UIView {
             return [
                 KeyboardRowSpec(keys: [key("7"), key("8"), key("9"), key("+"), key("-"), key("("), key(")")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("4"), key("5"), key("6"), key("*"), key("/"), key("."), key(",")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("1"), key("2"), key("3"), key("="), key("ans"), key("<-"), key("->")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("1"), key("2"), key("3"), key("="), key("ENG"), key("<-"), key("->")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("0"), key("␣", span: 3), key("↵", span: 2), key("⌫", span: 2)], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         case "Math":
             return [
-                KeyboardRowSpec(keys: [key("π"), key("E"), key("e"), key("ENG"), key("√"), key("^"), key("%")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("π"), key("E"), key("e"), key("√"), key("^"), key("%")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("abs"), key("sin"), key("log"), key("deg"), key("rad"), key("sum")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("min"), key("max"), key("cdf"), key("pdf"), key("rnd")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
@@ -979,7 +994,7 @@ final class MonsterKeyboardView: UIView {
         case "Prog":
             return [
                 KeyboardRowSpec(keys: [key("0x"), key("0b"), key("0"), key("1"), key("2-9"), key("A-F")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("<<"), key(">>"), key("hex"), key("bin"), key("to")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("<<"), key(">>"), key("hex"), key("bin"), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitpunch", span: 2), key("a2h"), key("h2a"), key("xor")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("("), key(")"), key(","), key("␣", span: 2), key("⌫", span: 2), key("↵")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
@@ -1113,13 +1128,19 @@ final class MonsterKeyboardView: UIView {
     private func makeConvertPage() -> UIView {
         ConversionPickerPageView(compactLayout: currentOrientationIsLandscape()) { [weak self] token, description in
             self?.setHint(description)
-            self?.actionHandler(.insert(token))
+            self?.actionHandler(.insert(" " + token))
         } onInsertTo: { [weak self] in
             self?.setHint("Insert conversion operator")
-            self?.actionHandler(.insert(" to "))
+            self?.actionHandler(.insert(" to"))
         } onInsertText: { [weak self] token, description in
             self?.setHint(description)
             self?.actionHandler(.insert(token))
+        } onBackspace: { [weak self] in
+            self?.setHint("Delete backward")
+            self?.actionHandler(.backspace)
+        } onClearLine: { [weak self] in
+            self?.setHint("Clear current line")
+            self?.actionHandler(.clearLine)
         } onHintChange: { [weak self] hint in
             self?.setHint(hint)
         }
@@ -1128,13 +1149,22 @@ final class MonsterKeyboardView: UIView {
     private func makeButton(for key: KeyboardKey) -> UIButton {
         let button = ExpandableKeyboardButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle(key.label, for: .normal)
         let prominentSymbol = ["⌫", "↵", "␣", "π", "√", "E", "⇧"].contains(key.label)
-        button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
-        button.contentVerticalAlignment = .center
+        let buttonFont = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
         if key.label == "␣" {
-            button.titleEdgeInsets = UIEdgeInsets(top: -3, left: 0, bottom: 3, right: 0)
+            let attributedTitle = NSAttributedString(
+                string: key.label,
+                attributes: [
+                    .font: buttonFont,
+                    .baselineOffset: -2,
+                ]
+            )
+            button.setAttributedTitle(attributedTitle, for: .normal)
+        } else {
+            button.setTitle(key.label, for: .normal)
+            button.titleLabel?.font = buttonFont
         }
+        button.contentVerticalAlignment = .center
         let isLabel = key.action == .none && key.menuOptions.isEmpty
         let isShiftKey = key.action == .toggleShift
         let isActiveShiftKey = isShiftKey && isTextShiftEnabled
@@ -1394,25 +1424,34 @@ extension MonsterKeyboardView: UIScrollViewDelegate {
 final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerViewDelegate {
     private let typePicker = UIPickerView()
     private let unitPicker = UIPickerView()
+    private let overlayDismissControl = UIControl()
     private let onInsertUnit: (String, String) -> Void
     private let onInsertTo: () -> Void
     private let onInsertText: (String, String) -> Void
+    private let onBackspace: () -> Void
+    private let onClearLine: () -> Void
     private let onHintChange: (String) -> Void
     private var selectedCategoryIndex = 0
     private var selectedUnitIndexes: [Int] = Array(repeating: 0, count: conversionCategories.count)
     private let compactLayout: Bool
+    private weak var activeExpansionView: UIView?
+    private weak var activeExpansionOptionButton: ExpansionOptionButton?
 
     init(
         compactLayout: Bool,
         onInsertUnit: @escaping (String, String) -> Void,
         onInsertTo: @escaping () -> Void,
         onInsertText: @escaping (String, String) -> Void,
+        onBackspace: @escaping () -> Void,
+        onClearLine: @escaping () -> Void,
         onHintChange: @escaping (String) -> Void
     ) {
         self.compactLayout = compactLayout
         self.onInsertUnit = onInsertUnit
         self.onInsertTo = onInsertTo
         self.onInsertText = onInsertText
+        self.onBackspace = onBackspace
+        self.onClearLine = onClearLine
         self.onHintChange = onHintChange
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
@@ -1424,6 +1463,13 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
     }
 
     private func setup() {
+        overlayDismissControl.translatesAutoresizingMaskIntoConstraints = false
+        overlayDismissControl.backgroundColor = .clear
+        overlayDismissControl.isHidden = true
+        overlayDismissControl.addAction(UIAction { [weak self] _ in
+            self?.dismissExpansion()
+        }, for: .touchUpInside)
+
         let pickerRow = UIStackView()
         pickerRow.translatesAutoresizingMaskIntoConstraints = false
         pickerRow.axis = .horizontal
@@ -1462,7 +1508,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
             ["7", "8", "9"],
             ["4", "5", "6"],
             ["1", "2", "3"],
-            ["0", ".", ""],
+            ["0", ".", "⌫"],
         ]
 
         for rowValues in keypadRows {
@@ -1477,6 +1523,11 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
                     let spacer = UIView()
                     spacer.translatesAutoresizingMaskIntoConstraints = false
                     row.addArrangedSubview(spacer)
+                } else if value == "⌫" {
+                    let button = makeExpandableBackspaceButton { [weak self] in
+                        self?.onBackspace()
+                    }
+                    row.addArrangedSubview(button)
                 } else {
                     let title = value
                     let button = makeActionButton(title: title) { [weak self] in
@@ -1505,6 +1556,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
             contentRow.distribution = .fill
 
             addSubview(contentRow)
+            addSubview(overlayDismissControl)
             contentRow.addArrangedSubview(leftColumn)
             contentRow.addArrangedSubview(keypadStack)
 
@@ -1517,28 +1569,39 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
                 contentRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
                 contentRow.topAnchor.constraint(equalTo: topAnchor, constant: 2),
                 contentRow.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -2),
+
+                overlayDismissControl.leadingAnchor.constraint(equalTo: leadingAnchor),
+                overlayDismissControl.trailingAnchor.constraint(equalTo: trailingAnchor),
+                overlayDismissControl.topAnchor.constraint(equalTo: topAnchor),
+                overlayDismissControl.bottomAnchor.constraint(equalTo: bottomAnchor),
             ])
         } else {
             addSubview(pickerRow)
             addSubview(buttonsRow)
             addSubview(keypadStack)
+            addSubview(overlayDismissControl)
 
             NSLayoutConstraint.activate([
                 pickerRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 8),
                 pickerRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
-                pickerRow.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-                pickerRow.heightAnchor.constraint(equalToConstant: 82),
+                pickerRow.topAnchor.constraint(equalTo: topAnchor, constant: 3),
+                pickerRow.heightAnchor.constraint(equalToConstant: 74),
 
                 buttonsRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
                 buttonsRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
-                buttonsRow.topAnchor.constraint(equalTo: pickerRow.bottomAnchor, constant: 4),
-                buttonsRow.heightAnchor.constraint(equalToConstant: 32),
+                buttonsRow.topAnchor.constraint(equalTo: pickerRow.bottomAnchor, constant: 3),
+                buttonsRow.heightAnchor.constraint(equalToConstant: 28),
 
-                keypadStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 22),
-                keypadStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -22),
-                keypadStack.topAnchor.constraint(equalTo: buttonsRow.bottomAnchor, constant: 4),
-                keypadStack.heightAnchor.constraint(equalToConstant: 138),
-                keypadStack.bottomAnchor.constraint(lessThanOrEqualTo: safeAreaLayoutGuide.bottomAnchor, constant: -2),
+                keypadStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 28),
+                keypadStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -28),
+                keypadStack.topAnchor.constraint(equalTo: buttonsRow.bottomAnchor, constant: 3),
+                keypadStack.heightAnchor.constraint(equalToConstant: 164),
+                keypadStack.bottomAnchor.constraint(lessThanOrEqualTo: safeAreaLayoutGuide.bottomAnchor, constant: 0),
+
+                overlayDismissControl.leadingAnchor.constraint(equalTo: leadingAnchor),
+                overlayDismissControl.trailingAnchor.constraint(equalTo: trailingAnchor),
+                overlayDismissControl.topAnchor.constraint(equalTo: topAnchor),
+                overlayDismissControl.bottomAnchor.constraint(equalTo: bottomAnchor),
             ])
         }
 
@@ -1557,19 +1620,162 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         picker.delegate = self
     }
 
-    private func makeActionButton(title: String, handler: @escaping () -> Void) -> UIButton {
+    private func makeActionButton(title: String, menu: UIMenu? = nil, handler: @escaping () -> Void) -> UIButton {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
+        if #available(iOS 15.0, *) {
+            var config = UIButton.Configuration.plain()
+            config.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 6, bottom: 2, trailing: 6)
+            button.configuration = config
+        } else {
+            button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)
+        }
         button.setTitle(title, for: .normal)
         button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: compactLayout ? 14 : 15, weight: .semibold)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.72
-        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
         button.layer.cornerRadius = 10
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = false
         button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
         return button
+    }
+
+    private func makeExpandableBackspaceButton(handler: @escaping () -> Void) -> UIButton {
+        let button = ExpandableKeyboardButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("⌫", for: .normal)
+        button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: compactLayout ? 18 : 22, weight: .semibold)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        button.layer.cornerRadius = 10
+        button.expansionOptions = [
+            KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
+        ]
+        button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleBackspaceLongPress(_:)))
+        longPress.minimumPressDuration = 0.28
+        button.addGestureRecognizer(longPress)
+
+        let ellipsis = UILabel()
+        ellipsis.translatesAutoresizingMaskIntoConstraints = false
+        ellipsis.text = "…"
+        ellipsis.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+        ellipsis.textColor = UIColor.white.withAlphaComponent(0.75)
+        button.addSubview(ellipsis)
+        NSLayoutConstraint.activate([
+            ellipsis.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -6),
+            ellipsis.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -3),
+        ])
+
+        return button
+    }
+
+    @objc private func handleBackspaceLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard let button = gesture.view as? ExpandableKeyboardButton, !button.expansionOptions.isEmpty else {
+            return
+        }
+
+        let point = gesture.location(in: overlayDismissControl)
+        switch gesture.state {
+        case .began:
+            showExpansion(from: button)
+            updateExpansionHighlight(at: point)
+        case .changed:
+            updateExpansionHighlight(at: point)
+        case .ended:
+            updateExpansionHighlight(at: point)
+            activateHighlightedExpansionOption()
+        default:
+            dismissExpansion()
+        }
+    }
+
+    private func showExpansion(from button: ExpandableKeyboardButton) {
+        dismissExpansion()
+        overlayDismissControl.isHidden = false
+
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.backgroundColor = UIColor(red: 0.20, green: 0.21, blue: 0.22, alpha: 0.98)
+        container.layer.cornerRadius = 12
+        container.layer.borderWidth = 1
+        container.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
+
+        let optionButton = ExpansionOptionButton(type: .system)
+        optionButton.optionKey = button.expansionOptions.first
+        optionButton.translatesAutoresizingMaskIntoConstraints = false
+        optionButton.setTitle("Line", for: .normal)
+        optionButton.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: 15, weight: .semibold)
+        optionButton.setTitleColor(.white, for: .normal)
+        optionButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        optionButton.layer.cornerRadius = 10
+        optionButton.addAction(UIAction { [weak self] _ in
+            self?.onClearLine()
+            self?.dismissExpansion()
+        }, for: .touchUpInside)
+
+        container.addSubview(optionButton)
+        overlayDismissControl.addSubview(container)
+
+        NSLayoutConstraint.activate([
+            optionButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 6),
+            optionButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
+            optionButton.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            optionButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6),
+            container.heightAnchor.constraint(equalToConstant: 54),
+            container.widthAnchor.constraint(equalToConstant: 86),
+        ])
+
+        let sourceFrame = button.convert(button.bounds, to: overlayDismissControl)
+        let leading = max(8, min(sourceFrame.midX - 43, bounds.width - 94))
+        let top = max(8, sourceFrame.minY - 58)
+
+        NSLayoutConstraint.activate([
+            container.leadingAnchor.constraint(equalTo: overlayDismissControl.leadingAnchor, constant: leading),
+            container.topAnchor.constraint(equalTo: overlayDismissControl.topAnchor, constant: top),
+        ])
+
+        activeExpansionView = container
+        activeExpansionOptionButton = optionButton
+        overlayDismissControl.layoutIfNeeded()
+    }
+
+    private func dismissExpansion() {
+        activeExpansionView?.removeFromSuperview()
+        activeExpansionView = nil
+        activeExpansionOptionButton = nil
+        overlayDismissControl.isHidden = true
+    }
+
+    private func updateExpansionHighlight(at point: CGPoint) {
+        guard let optionButton = activeExpansionOptionButton else {
+            return
+        }
+
+        let frame = optionButton.convert(optionButton.bounds, to: overlayDismissControl).insetBy(dx: -6, dy: -10)
+        let highlighted = frame.contains(point)
+        optionButton.backgroundColor = highlighted ? ScratchpadStyle.accent : UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        optionButton.setTitleColor(highlighted ? .black : .white, for: .normal)
+        if highlighted {
+            onHintChange("Clear current line")
+        }
+    }
+
+    private func activateHighlightedExpansionOption() {
+        guard let optionButton = activeExpansionOptionButton else {
+            dismissExpansion()
+            return
+        }
+
+        let isHighlighted = optionButton.backgroundColor == ScratchpadStyle.accent
+        if isHighlighted {
+            onClearLine()
+        }
+        dismissExpansion()
     }
 
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
@@ -2675,39 +2881,93 @@ struct ScratchpadTextView: UIViewRepresentable {
 }
 
 final class ResultsContainerView: UIView {
+    let scrollView = UIScrollView()
     let textView = NonWrappingTextView()
     let tapOverlay = UIView()
+    let textViewWidthConstraint: NSLayoutConstraint
+    private var isUpdatingResultsWidth = false
 
     override init(frame: CGRect) {
+        textViewWidthConstraint = textView.widthAnchor.constraint(equalToConstant: 320)
         super.init(frame: frame)
         configure()
     }
 
     required init?(coder: NSCoder) {
+        textViewWidthConstraint = textView.widthAnchor.constraint(equalToConstant: 320)
         super.init(coder: coder)
         configure()
+    }
+
+    func updateResultsWidth(_ width: CGFloat) {
+        guard !isUpdatingResultsWidth else { return }
+        isUpdatingResultsWidth = true
+        defer { isUpdatingResultsWidth = false }
+
+        let targetWidth = max(scrollView.bounds.width, ceil(width))
+        if abs(textViewWidthConstraint.constant - targetWidth) > 0.5 {
+            textViewWidthConstraint.constant = targetWidth
+            setNeedsLayout()
+        }
+        let targetContentSize = CGSize(width: targetWidth, height: scrollView.bounds.height)
+        if abs(scrollView.contentSize.width - targetContentSize.width) > 0.5 || abs(scrollView.contentSize.height - targetContentSize.height) > 0.5 {
+            scrollView.contentSize = targetContentSize
+        }
+        textView.layoutManager.ensureLayout(for: textView.textContainer)
+        textView.setNeedsDisplay()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let horizontalInsets = textView.textContainerInset.left + textView.textContainerInset.right + (textView.textContainer.lineFragmentPadding * 2)
+        let desiredWidth = max(
+            scrollView.bounds.width,
+            ceil(textView.longestLineWidth() + horizontalInsets + 32)
+        )
+        updateResultsWidth(desiredWidth)
     }
 
     private func configure() {
         clipsToBounds = true
 
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsHorizontalScrollIndicator = true
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.alwaysBounceHorizontal = false
+        scrollView.alwaysBounceVertical = false
+        scrollView.bounces = false
+        scrollView.isScrollEnabled = false
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.clipsToBounds = true
+
         textView.translatesAutoresizingMaskIntoConstraints = false
         tapOverlay.translatesAutoresizingMaskIntoConstraints = false
         tapOverlay.backgroundColor = .clear
+        tapOverlay.isUserInteractionEnabled = false
 
-        addSubview(textView)
-        addSubview(tapOverlay)
+        addSubview(scrollView)
+        scrollView.addSubview(textView)
+        scrollView.addSubview(tapOverlay)
 
         NSLayoutConstraint.activate([
-            textView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            textView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            textView.topAnchor.constraint(equalTo: topAnchor),
-            textView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            tapOverlay.leadingAnchor.constraint(equalTo: leadingAnchor),
-            tapOverlay.trailingAnchor.constraint(equalTo: trailingAnchor),
-            tapOverlay.topAnchor.constraint(equalTo: topAnchor),
-            tapOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+            textView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            textView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            textView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            textView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            textView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+            textViewWidthConstraint,
+
+            tapOverlay.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            tapOverlay.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            tapOverlay.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            tapOverlay.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            tapOverlay.widthAnchor.constraint(equalTo: textView.widthAnchor),
+            tapOverlay.heightAnchor.constraint(equalTo: textView.heightAnchor),
         ])
     }
 }
@@ -2722,6 +2982,9 @@ struct ResultsTextView: UIViewRepresentable {
     func makeUIView(context: Context) -> ResultsContainerView {
         let container = ResultsContainerView()
         let textView = container.textView
+        textView.onPreferredWidthChange = { [weak container] width in
+            container?.updateResultsWidth(width)
+        }
         textView.font = ScratchpadStyle.font
         textView.backgroundColor = .clear
         textView.textColor = ScratchpadStyle.secondaryText
@@ -2731,6 +2994,7 @@ struct ResultsTextView: UIViewRepresentable {
         textView.isSelectable = false
         textView.isScrollEnabled = true
         textView.isUserInteractionEnabled = false
+        textView.keepsWideTextContainer = true
         textView.alwaysBounceVertical = false
         textView.alwaysBounceHorizontal = false
         textView.bounces = false
@@ -2745,20 +3009,25 @@ struct ResultsTextView: UIViewRepresentable {
         textView.contentInsetAdjustmentBehavior = .never
         textView.text = text
         scrollBridge.registerResults(textView: textView)
+        context.coordinator.container = container
+        context.coordinator.installHorizontalPanIfNeeded(in: container)
 
         let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(ResultsCoordinator.handleTap(_:)))
-        container.tapOverlay.addGestureRecognizer(tapGesture)
+        tapGesture.cancelsTouchesInView = false
+        container.scrollView.addGestureRecognizer(tapGesture)
         return container
     }
 
         func updateUIView(_ uiView: ResultsContainerView, context: Context) {
             context.coordinator.results = results
             context.coordinator.container = uiView
+            context.coordinator.installHorizontalPanIfNeeded(in: uiView)
             scrollBridge.registerResults(textView: uiView.textView)
             if uiView.textView.text != text {
                 uiView.textView.text = text
             }
-            uiView.textView.layoutIfNeeded()
+            uiView.updateResultsWidth(uiView.textView.currentPreferredContentWidth())
+            uiView.layoutIfNeeded()
 
             let targetOffset = max(0, scrollOffset)
             if abs(uiView.textView.contentOffset.y - targetOffset) > 0.5 {
@@ -2770,12 +3039,14 @@ struct ResultsTextView: UIViewRepresentable {
         ResultsCoordinator(results: results, scrollOffset: $scrollOffset, scrollBridge: scrollBridge, onInsertLineReference: onInsertLineReference)
     }
 
-    final class ResultsCoordinator: NSObject, UITextViewDelegate {
+    final class ResultsCoordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
         var results: [LineResult]
         @Binding private var scrollOffset: CGFloat
         private weak var scrollBridge: ScrollSyncBridge?
         weak var container: ResultsContainerView?
         private let onInsertLineReference: (Int) -> Void
+        private weak var horizontalPanRecognizer: UIPanGestureRecognizer?
+        private var horizontalPanStartOffsetX: CGFloat = 0
 
         init(results: [LineResult], scrollOffset: Binding<CGFloat>, scrollBridge: ScrollSyncBridge, onInsertLineReference: @escaping (Int) -> Void) {
             self.results = results
@@ -2784,13 +3055,22 @@ struct ResultsTextView: UIViewRepresentable {
             self.onInsertLineReference = onInsertLineReference
         }
 
+        func installHorizontalPanIfNeeded(in container: ResultsContainerView) {
+            guard horizontalPanRecognizer == nil else { return }
+            let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handleHorizontalPan(_:)))
+            panRecognizer.delegate = self
+            panRecognizer.cancelsTouchesInView = false
+            container.scrollView.addGestureRecognizer(panRecognizer)
+            horizontalPanRecognizer = panRecognizer
+        }
+
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let container else {
                 return
             }
 
-            let point = gesture.location(in: container.tapOverlay)
-            let textPoint = container.tapOverlay.convert(point, to: container.textView)
+            let point = gesture.location(in: container.scrollView)
+            let textPoint = container.scrollView.convert(point, to: container.textView)
             guard let lineNumber = lineNumber(at: textPoint, in: container.textView) else {
                 return
             }
@@ -2803,6 +3083,46 @@ struct ResultsTextView: UIViewRepresentable {
             }
 
             onInsertLineReference(lineNumber)
+        }
+
+        @objc private func handleHorizontalPan(_ gesture: UIPanGestureRecognizer) {
+            guard let container else {
+                return
+            }
+
+            let scrollView = container.scrollView
+            let maxHorizontalOffset = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+            guard maxHorizontalOffset > 0 else {
+                return
+            }
+
+            switch gesture.state {
+            case .began:
+                horizontalPanStartOffsetX = scrollView.contentOffset.x
+            case .changed:
+                let translation = gesture.translation(in: scrollView)
+                let targetX = min(max(horizontalPanStartOffsetX - translation.x, 0), maxHorizontalOffset)
+                scrollView.setContentOffset(CGPoint(x: targetX, y: scrollView.contentOffset.y), animated: false)
+                container.textView.layoutManager.ensureLayout(for: container.textView.textContainer)
+                container.textView.setNeedsDisplay()
+            default:
+                break
+            }
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard gestureRecognizer === horizontalPanRecognizer,
+                  let scrollView = gestureRecognizer.view as? UIScrollView
+            else {
+                return true
+            }
+
+            let hasHorizontalOverflow = scrollView.contentSize.width > scrollView.bounds.width + 1
+            return hasHorizontalOverflow
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            gestureRecognizer === horizontalPanRecognizer
         }
 
         private func lineNumber(at point: CGPoint, in textView: UITextView) -> Int? {
