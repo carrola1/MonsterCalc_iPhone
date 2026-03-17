@@ -69,4 +69,55 @@ final class ScratchpadViewModelTests: XCTestCase {
         XCTAssertEqual(secondModel.text, DemoSheet.text)
         XCTAssertFalse(secondModel.results.isEmpty)
     }
+
+    func testNewSheetAutosavesPreviousNonBlankSheet() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+        model.text = "alpha\nbeta"
+
+        model.createNewSheet()
+
+        XCTAssertEqual(model.text, "")
+        XCTAssertEqual(model.recentSavedSheets.count, 1)
+        XCTAssertEqual(model.recentSavedSheets[0].text, "alpha\nbeta")
+        XCTAssertEqual(model.recentSavedSheets[0].previewLine, "alpha")
+    }
+
+    func testBlankSheetsAreNotSaved() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+
+        model.createNewSheet()
+
+        XCTAssertTrue(model.recentSavedSheets.isEmpty)
+    }
+
+    func testSavedSheetsAreTrimmedToTenMostRecent() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+
+        for index in 1...12 {
+            model.text = "sheet \(index)"
+            model.createNewSheet()
+        }
+
+        XCTAssertEqual(model.recentSavedSheets.count, 10)
+        XCTAssertEqual(model.recentSavedSheets.first?.previewLine, "sheet 12")
+        XCTAssertEqual(model.recentSavedSheets.last?.previewLine, "sheet 3")
+    }
+
+    func testLoadingSavedSheetAutosavesCurrentSheet() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+        model.text = "first sheet"
+        model.createNewSheet()
+        model.text = "second sheet"
+
+        let firstSavedSheet = try! XCTUnwrap(model.recentSavedSheets.last)
+        model.loadSheet(firstSavedSheet)
+
+        XCTAssertEqual(model.text, "first sheet")
+        XCTAssertEqual(model.recentSavedSheets.count, 2)
+        XCTAssertEqual(model.recentSavedSheets.first?.previewLine, "second sheet")
+    }
 }

@@ -180,12 +180,31 @@ line2 + x</pre>
       <ul>
         <li>Blank lines are allowed.</li>
         <li>Start a comment with <code>#</code>.</li>
+        <li>Sheets are autosaved as you work. Nonblank sheets are kept in a rolling list of the 10 most recently edited sheets.</li>
         <li>Tap a live result to insert its matching <code>lineX</code> token at the cursor.</li>
         <li>The editor shows ghost hints for built-in functions while you type.</li>
         <li>Incomplete expressions such as <code>abs(</code> are treated as in-progress input, not hard errors.</li>
       </ul>
       <div class="callout">
         Tip: if a helper auto-inserts a closing <code>)</code>, keep typing. The caret stays inside the parentheses so you can finish the argument naturally.
+      </div>
+    </section>
+
+    <section>
+      <h2>Sheets</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Autosave</h3>
+          <p>There is no Save button. MonsterCalc automatically saves the current nonblank sheet and updates its last-edited time as you work.</p>
+        </div>
+        <div class="card">
+          <h3>New Sheet</h3>
+          <p>Tap the <code>+</code> button beside the hamburger menu to start a fresh sheet. The current nonblank sheet is autosaved before the new sheet opens.</p>
+        </div>
+        <div class="card">
+          <h3>Load Sheet</h3>
+          <p>Open the hamburger menu and choose <strong>Load Sheet</strong> to see recent sheets. Each entry shows the last edited date and a preview of the first nonblank line.</p>
+        </div>
       </div>
     </section>
 
@@ -217,8 +236,8 @@ line2 + x</pre>
           </tr>
           <tr>
             <td><strong>Convert</strong></td>
-            <td>Choose a unit family and insert unit tokens or <code>to</code> quickly while the conversion engine is still being ported.</td>
-            <td><code>mm</code>, <code>in</code>, <code>to</code></td>
+            <td>Choose a unit family, insert units quickly, and build conversions like <code>70 F to C</code>.</td>
+            <td><code>mm</code>, <code>in</code>, <code>70 F to C</code></td>
           </tr>
           <tr>
             <td><strong>EE</strong></td>

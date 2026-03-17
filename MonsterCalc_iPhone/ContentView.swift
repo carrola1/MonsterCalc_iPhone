@@ -18,18 +18,47 @@ private extension UIResponder {
 
 @MainActor
 final class ScratchpadViewModel: ObservableObject {
+    struct SavedSheet: Identifiable, Codable, Equatable {
+        let id: UUID
+        var text: String
+        var lastEdited: Date
+
+        init(id: UUID = UUID(), text: String, lastEdited: Date = Date()) {
+            self.id = id
+            self.text = text
+            self.lastEdited = lastEdited
+        }
+
+        var previewLine: String {
+            text
+                .components(separatedBy: .newlines)
+                .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? "Untitled Sheet"
+        }
+    }
+
     private enum SettingKey {
         static let sigFigures = "monstercalc.sigFigures"
         static let resultFormat = "monstercalc.resultFormat"
         static let hasSeenInitialDemo = "monstercalc.hasSeenInitialDemo"
+        static let savedSheets = "monstercalc.savedSheets"
+        static let currentSheetID = "monstercalc.currentSheetID"
+        static let currentSheetText = "monstercalc.currentSheetText"
     }
+
+    private static let maxSavedSheets = 10
 
     @Published var text: String = "" {
         didSet {
             evaluate()
+            persistCurrentSheetState()
+            guard !isApplyingProgrammaticText else { return }
+            autosaveCurrentSheetIfNeeded()
         }
     }
     @Published private(set) var results: [LineResult] = []
+    @Published private(set) var savedSheets: [SavedSheet] = []
     @Published var pendingInsertion: String?
     @Published var sigFigures: Int {
         didSet {
@@ -51,6 +80,8 @@ final class ScratchpadViewModel: ObservableObject {
 
     private var engine = ScratchpadEngine()
     private let defaults: UserDefaults
+    private var currentSheetID: UUID?
+    private var isApplyingProgrammaticText = false
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -64,14 +95,22 @@ final class ScratchpadViewModel: ObservableObject {
         self.resultFormat = ResultFormat(
             rawValue: defaults.string(forKey: SettingKey.resultFormat) ?? ""
         ) ?? .si
+        self.savedSheets = Self.loadSavedSheets(from: defaults)
+        self.currentSheetID = defaults.string(forKey: SettingKey.currentSheetID).flatMap(UUID.init(uuidString:))
 
-        if defaults.bool(forKey: SettingKey.hasSeenInitialDemo) {
-            self.text = ""
+        if let storedText = defaults.string(forKey: SettingKey.currentSheetText) {
+            applyProgrammaticSheetState(text: storedText, sheetID: currentSheetID)
+        } else if defaults.bool(forKey: SettingKey.hasSeenInitialDemo) {
+            applyProgrammaticSheetState(text: "", sheetID: nil)
         } else {
-            self.text = DemoSheet.text
+            applyProgrammaticSheetState(text: DemoSheet.text, sheetID: nil)
             defaults.set(true, forKey: SettingKey.hasSeenInitialDemo)
         }
         evaluate()
+    }
+
+    var recentSavedSheets: [SavedSheet] {
+        savedSheets.reversed()
     }
 
     var resultsText: String {
@@ -81,11 +120,22 @@ final class ScratchpadViewModel: ObservableObject {
     }
 
     func loadDemo() {
-        text = DemoSheet.text
+        autosaveCurrentSheetIfNeeded()
+        applyProgrammaticSheetState(text: DemoSheet.text, sheetID: nil)
     }
 
     func clear() {
-        text = ""
+        applyProgrammaticSheetState(text: "", sheetID: currentSheetID)
+    }
+
+    func createNewSheet() {
+        autosaveCurrentSheetIfNeeded()
+        applyProgrammaticSheetState(text: "", sheetID: nil)
+    }
+
+    func loadSheet(_ sheet: SavedSheet) {
+        autosaveCurrentSheetIfNeeded()
+        applyProgrammaticSheetState(text: sheet.text, sheetID: sheet.id)
     }
 
     func insert(_ token: String) {
@@ -105,6 +155,54 @@ final class ScratchpadViewModel: ObservableObject {
     private func saveSettings() {
         defaults.set(sigFigures, forKey: SettingKey.sigFigures)
         defaults.set(resultFormat.rawValue, forKey: SettingKey.resultFormat)
+    }
+
+    private func applyProgrammaticSheetState(text newText: String, sheetID: UUID?) {
+        isApplyingProgrammaticText = true
+        currentSheetID = sheetID
+        text = newText
+        isApplyingProgrammaticText = false
+        persistCurrentSheetState()
+    }
+
+    private func autosaveCurrentSheetIfNeeded() {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let sheetID = currentSheetID ?? UUID()
+        currentSheetID = sheetID
+
+        let savedSheet = SavedSheet(id: sheetID, text: text, lastEdited: Date())
+        if let existingIndex = savedSheets.firstIndex(where: { $0.id == sheetID }) {
+            savedSheets.remove(at: existingIndex)
+        }
+        savedSheets.append(savedSheet)
+        if savedSheets.count > Self.maxSavedSheets {
+            savedSheets.removeFirst(savedSheets.count - Self.maxSavedSheets)
+        }
+        persistSavedSheets()
+        persistCurrentSheetState()
+    }
+
+    private func persistSavedSheets() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(savedSheets) else { return }
+        defaults.set(data, forKey: SettingKey.savedSheets)
+    }
+
+    private func persistCurrentSheetState() {
+        defaults.set(text, forKey: SettingKey.currentSheetText)
+        defaults.set(currentSheetID?.uuidString, forKey: SettingKey.currentSheetID)
+    }
+
+    private static func loadSavedSheets(from defaults: UserDefaults) -> [SavedSheet] {
+        guard let data = defaults.data(forKey: SettingKey.savedSheets) else {
+            return []
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return (try? decoder.decode([SavedSheet].self, from: data)) ?? []
     }
 }
 
@@ -133,6 +231,7 @@ struct ContentView: View {
     @State private var synchronizedScrollOffset: CGFloat = 0
     @State private var inputMode: EditorInputMode = .calc
     @State private var activeSheet: HeaderSheet?
+    @State private var showingSavedSheets = false
 
     var body: some View {
         NavigationStack {
@@ -179,6 +278,17 @@ struct ContentView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingSavedSheets) {
+                NavigationStack {
+                    SavedSheetsScreen(
+                        sheets: model.recentSavedSheets,
+                        onLoadSheet: { sheet in
+                            model.loadSheet(sheet)
+                            showingSavedSheets = false
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -201,8 +311,30 @@ struct ContentView: View {
 
             Spacer()
 
+            Button {
+                model.createNewSheet()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .frame(width: 36, height: 36)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.white.opacity(0.06))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            }
+            .accessibilityIdentifier("header.newSheet")
+
             Menu {
                 Section("Actions") {
+                    Button("Load Sheet") {
+                        showingSavedSheets = true
+                    }
+
                     Button("Load Demo") {
                         model.loadDemo()
                     }
@@ -438,6 +570,59 @@ private struct HTMLDocumentScreen: View {
             }
         }
         .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+private struct SavedSheetsScreen: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let sheets: [ScratchpadViewModel.SavedSheet]
+    let onLoadSheet: (ScratchpadViewModel.SavedSheet) -> Void
+
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    var body: some View {
+        Group {
+            if sheets.isEmpty {
+                ContentUnavailableView(
+                    "No Saved Sheets",
+                    systemImage: "doc.text.magnifyingglass",
+                    description: Text("Nonblank sheets will appear here automatically as you work.")
+                )
+            } else {
+                List(sheets) { sheet in
+                    Button {
+                        onLoadSheet(sheet)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(sheet.previewLine)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Text(Self.timestampFormatter.string(from: sheet.lastEdited))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle("Load Sheet")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
