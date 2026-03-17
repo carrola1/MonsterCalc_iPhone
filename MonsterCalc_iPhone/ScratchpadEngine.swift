@@ -316,6 +316,10 @@ struct ScratchpadEngine {
         let trimmed = expression.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return true }
 
+        if looksLikePartialConversion(trimmed) {
+            return true
+        }
+
         if trimmed.hasSuffix("(") || trimmed.hasSuffix(",") {
             return true
         }
@@ -341,6 +345,16 @@ struct ScratchpadEngine {
             return true
         }
 
+        return false
+    }
+
+    private func looksLikePartialConversion(_ expression: String) -> Bool {
+        if expression.range(of: #"^\s*.+\s+[A-Za-z][A-Za-z0-9]*\s*$"#, options: .regularExpression) != nil {
+            return true
+        }
+        if expression.range(of: #"^\s*.+\s+[A-Za-z][A-Za-z0-9]*\s+to\s*$"#, options: .regularExpression) != nil {
+            return true
+        }
         return false
     }
 

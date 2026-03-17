@@ -193,17 +193,7 @@ struct ExpressionParser {
             advance()
             if currentToken == .leftParen {
                 advance()
-                var arguments: [CalculatorValue] = []
-                if currentToken != .rightParen {
-                    while true {
-                        arguments.append(try parseExpression())
-                        if currentToken == .comma {
-                            advance()
-                            continue
-                        }
-                        break
-                    }
-                }
+                let arguments = try parseFunctionArguments(for: name)
                 guard currentToken == .rightParen else {
                     throw ParserError.unexpectedToken
                 }
@@ -224,6 +214,42 @@ struct ExpressionParser {
         default:
             throw ParserError.unexpectedToken
         }
+    }
+
+    private mutating func parseFunctionArguments(for functionName: String) throws -> [CalculatorValue] {
+        if currentToken == .rightParen {
+            return []
+        }
+
+        if functionName == "a2h" {
+            let argument: CalculatorValue
+            switch currentToken {
+            case let .identifier(value):
+                advance()
+                argument = .text(value)
+            case let .string(value):
+                advance()
+                argument = .text(value)
+            default:
+                argument = try parseExpression()
+            }
+
+            if currentToken == .comma {
+                throw ParserError.invalidArguments("a2h expects a single text input")
+            }
+            return [argument]
+        }
+
+        var arguments: [CalculatorValue] = []
+        while true {
+            arguments.append(try parseExpression())
+            if currentToken == .comma {
+                advance()
+                continue
+            }
+            break
+        }
+        return arguments
     }
 
     private func resolveIdentifier(_ name: String) throws -> CalculatorValue {

@@ -66,10 +66,12 @@ final class ScratchpadEngineTests: XCTestCase {
             x =
             findrdiv(
             vdiv(5, r)
+            70 F
+            70 F to
             """
         )
 
-        XCTAssertEqual(results.count, 4)
+        XCTAssertEqual(results.count, 6)
         for result in results {
             XCTAssertEqual(result.display, "")
             XCTAssertNil(result.error)
@@ -101,6 +103,7 @@ final class ScratchpadEngineTests: XCTestCase {
             bitget(0x81, 7, 7)
             bitpunch(1, 7, 1)
             a2h("Az")
+            a2h(Az)
             h2a("0x417a")
             """
         )
@@ -110,7 +113,8 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[2].display, "0b1")
         XCTAssertEqual(results[3].value?.numberValue ?? 0, 129, accuracy: 0.000001)
         XCTAssertEqual(results[4].display, "0x417a")
-        XCTAssertEqual(results[5].display, "Az")
+        XCTAssertEqual(results[5].display, "0x417a")
+        XCTAssertEqual(results[6].display, "Az")
     }
 
     func testEEHelpers() throws {

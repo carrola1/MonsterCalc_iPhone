@@ -340,7 +340,7 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
     KeyboardKey(label: "bin", action: .insert("bin("), description: "Convert to binary"),
     KeyboardKey(label: "bitget", action: .insert("bitget("), description: "Bit slice (value, msb, lsb)"),
     KeyboardKey(label: "bitpunch", action: .insert("bitpunch("), description: "Set or clear bit", span: 2),
-    KeyboardKey(label: "a2h", action: .insert("a2h(\""), description: "ASCII to hex"),
+    KeyboardKey(label: "a2h", action: .insert("a2h("), description: "ASCII to hex"),
     KeyboardKey(label: "h2a", action: .insert("h2a("), description: "Hex to ASCII"),
     KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
     KeyboardKey(label: ")", action: .insert(")"), description: "Right parenthesis"),
@@ -510,8 +510,10 @@ final class MonsterKeyboardView: UIView {
     private let actionHandler: (KeyboardAction) -> Void
     private let scrollView = UIScrollView()
     private let onPageChange: (Int) -> Void
+    private let onDismissKeyboard: () -> Void
     private let overlayDismissControl = UIControl()
     private let segmentedControl = UISegmentedControl(items: ["Text", "Calc", "Math", "Convert", "EE", "Prog"])
+    private let dismissButton = UIButton(type: .system)
     private let hintLabel = UILabel()
     private let backgroundPanel = UIView()
     private var hintHeightConstraint: NSLayoutConstraint?
@@ -530,9 +532,14 @@ final class MonsterKeyboardView: UIView {
     private var layoutConstraints: [NSLayoutConstraint] = []
     private var lastLandscapeState: Bool?
 
-    fileprivate init(actionHandler: @escaping (KeyboardAction) -> Void, onPageChange: @escaping (Int) -> Void) {
+    fileprivate init(
+        actionHandler: @escaping (KeyboardAction) -> Void,
+        onPageChange: @escaping (Int) -> Void,
+        onDismissKeyboard: @escaping () -> Void
+    ) {
         self.actionHandler = actionHandler
         self.onPageChange = onPageChange
+        self.onDismissKeyboard = onDismissKeyboard
         super.init(frame: .zero)
         autoresizingMask = [.flexibleHeight]
         translatesAutoresizingMaskIntoConstraints = false
@@ -595,6 +602,22 @@ final class MonsterKeyboardView: UIView {
         segmentedControl.setTitleTextAttributes([.foregroundColor: UIColor.black], for: .selected)
         segmentedControl.addTarget(self, action: #selector(handleSegmentChange), for: .valueChanged)
 
+        dismissButton.translatesAutoresizingMaskIntoConstraints = false
+        if #available(iOS 15.0, *) {
+            dismissButton.setImage(UIImage(systemName: "keyboard.chevron.compact.down"), for: .normal)
+        } else {
+            dismissButton.setTitle("⌄", for: .normal)
+        }
+        dismissButton.tintColor = UIColor.white.withAlphaComponent(0.88)
+        dismissButton.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+        dismissButton.layer.cornerRadius = 9
+        dismissButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+        dismissButton.accessibilityIdentifier = "keyboard.dismiss"
+        dismissButton.accessibilityLabel = "Dismiss keyboard"
+        dismissButton.addAction(UIAction { [weak self] _ in
+            self?.onDismissKeyboard()
+        }, for: .touchUpInside)
+
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         hintLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
         hintLabel.textColor = UIColor.white.withAlphaComponent(0.78)
@@ -631,6 +654,7 @@ final class MonsterKeyboardView: UIView {
 
         addSubview(backgroundPanel)
         addSubview(segmentedControl)
+        addSubview(dismissButton)
         addSubview(hintLabel)
         addSubview(scrollView)
         addSubview(overlayDismissControl)
@@ -643,9 +667,14 @@ final class MonsterKeyboardView: UIView {
             backgroundPanel.bottomAnchor.constraint(equalTo: bottomAnchor),
 
             segmentedControl.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
-            segmentedControl.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            segmentedControl.trailingAnchor.constraint(equalTo: dismissButton.leadingAnchor, constant: -8),
             segmentedControl.topAnchor.constraint(equalTo: topAnchor, constant: 6),
             segmentedControl.heightAnchor.constraint(equalToConstant: 32),
+
+            dismissButton.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            dismissButton.centerYAnchor.constraint(equalTo: segmentedControl.centerYAnchor),
+            dismissButton.widthAnchor.constraint(equalToConstant: 32),
+            dismissButton.heightAnchor.constraint(equalToConstant: 32),
 
             hintLabel.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 12),
             hintLabel.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -12),
@@ -1088,6 +1117,9 @@ final class MonsterKeyboardView: UIView {
         } onInsertTo: { [weak self] in
             self?.setHint("Insert conversion operator")
             self?.actionHandler(.insert(" to "))
+        } onInsertText: { [weak self] token, description in
+            self?.setHint(description)
+            self?.actionHandler(.insert(token))
         } onHintChange: { [weak self] hint in
             self?.setHint(hint)
         }
@@ -1364,6 +1396,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
     private let unitPicker = UIPickerView()
     private let onInsertUnit: (String, String) -> Void
     private let onInsertTo: () -> Void
+    private let onInsertText: (String, String) -> Void
     private let onHintChange: (String) -> Void
     private var selectedCategoryIndex = 0
     private var selectedUnitIndexes: [Int] = Array(repeating: 0, count: conversionCategories.count)
@@ -1373,11 +1406,13 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         compactLayout: Bool,
         onInsertUnit: @escaping (String, String) -> Void,
         onInsertTo: @escaping () -> Void,
+        onInsertText: @escaping (String, String) -> Void,
         onHintChange: @escaping (String) -> Void
     ) {
         self.compactLayout = compactLayout
         self.onInsertUnit = onInsertUnit
         self.onInsertTo = onInsertTo
+        self.onInsertText = onInsertText
         self.onHintChange = onHintChange
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
@@ -1392,7 +1427,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         let pickerRow = UIStackView()
         pickerRow.translatesAutoresizingMaskIntoConstraints = false
         pickerRow.axis = .horizontal
-        pickerRow.spacing = 8
+        pickerRow.spacing = compactLayout ? 6 : 8
         pickerRow.distribution = .fillEqually
 
         configurePicker(typePicker, tag: 0)
@@ -1403,7 +1438,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         let buttonsRow = UIStackView()
         buttonsRow.translatesAutoresizingMaskIntoConstraints = false
         buttonsRow.axis = .horizontal
-        buttonsRow.spacing = 10
+        buttonsRow.spacing = compactLayout ? 8 : 10
         buttonsRow.distribution = .fillEqually
 
         let toButton = makeActionButton(title: "Insert to") { [weak self] in
@@ -1417,20 +1452,95 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         buttonsRow.addArrangedSubview(toButton)
         buttonsRow.addArrangedSubview(unitButton)
 
-        addSubview(pickerRow)
-        addSubview(buttonsRow)
+        let keypadStack = UIStackView()
+        keypadStack.translatesAutoresizingMaskIntoConstraints = false
+        keypadStack.axis = .vertical
+        keypadStack.spacing = compactLayout ? 2 : 6
+        keypadStack.distribution = .fillEqually
 
-        NSLayoutConstraint.activate([
-            pickerRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 8),
-            pickerRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
-            pickerRow.topAnchor.constraint(equalTo: topAnchor, constant: compactLayout ? 2 : 6),
-            pickerRow.heightAnchor.constraint(equalToConstant: compactLayout ? 88 : 136),
+        let keypadRows: [[String]] = [
+            ["7", "8", "9"],
+            ["4", "5", "6"],
+            ["1", "2", "3"],
+            ["0", ".", ""],
+        ]
 
-            buttonsRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
-            buttonsRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
-            buttonsRow.topAnchor.constraint(equalTo: pickerRow.bottomAnchor, constant: compactLayout ? 6 : 8),
-            buttonsRow.heightAnchor.constraint(equalToConstant: compactLayout ? CustomKeyboardMetrics.landscapeButtonHeight : CustomKeyboardMetrics.portraitButtonHeight),
-        ])
+        for rowValues in keypadRows {
+            let row = UIStackView()
+            row.translatesAutoresizingMaskIntoConstraints = false
+            row.axis = .horizontal
+            row.spacing = compactLayout ? 6 : 8
+            row.distribution = .fillEqually
+
+            for value in rowValues {
+                if value.isEmpty {
+                    let spacer = UIView()
+                    spacer.translatesAutoresizingMaskIntoConstraints = false
+                    row.addArrangedSubview(spacer)
+                } else {
+                    let title = value
+                    let button = makeActionButton(title: title) { [weak self] in
+                        self?.onInsertText(title, title == "." ? "Insert decimal point" : "Insert \(title)")
+                    }
+                    row.addArrangedSubview(button)
+                }
+            }
+
+            keypadStack.addArrangedSubview(row)
+        }
+
+        if compactLayout {
+            let leftColumn = UIStackView()
+            leftColumn.translatesAutoresizingMaskIntoConstraints = false
+            leftColumn.axis = .vertical
+            leftColumn.spacing = 4
+            leftColumn.distribution = .fill
+            leftColumn.addArrangedSubview(pickerRow)
+            leftColumn.addArrangedSubview(buttonsRow)
+
+            let contentRow = UIStackView()
+            contentRow.translatesAutoresizingMaskIntoConstraints = false
+            contentRow.axis = .horizontal
+            contentRow.spacing = 8
+            contentRow.distribution = .fill
+
+            addSubview(contentRow)
+            contentRow.addArrangedSubview(leftColumn)
+            contentRow.addArrangedSubview(keypadStack)
+
+            NSLayoutConstraint.activate([
+                pickerRow.heightAnchor.constraint(equalToConstant: 54),
+                buttonsRow.heightAnchor.constraint(equalToConstant: 24),
+                keypadStack.widthAnchor.constraint(equalTo: contentRow.widthAnchor, multiplier: 0.34),
+
+                contentRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                contentRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
+                contentRow.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+                contentRow.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -2),
+            ])
+        } else {
+            addSubview(pickerRow)
+            addSubview(buttonsRow)
+            addSubview(keypadStack)
+
+            NSLayoutConstraint.activate([
+                pickerRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                pickerRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
+                pickerRow.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+                pickerRow.heightAnchor.constraint(equalToConstant: 82),
+
+                buttonsRow.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 10),
+                buttonsRow.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -10),
+                buttonsRow.topAnchor.constraint(equalTo: pickerRow.bottomAnchor, constant: 4),
+                buttonsRow.heightAnchor.constraint(equalToConstant: 32),
+
+                keypadStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 22),
+                keypadStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -22),
+                keypadStack.topAnchor.constraint(equalTo: buttonsRow.bottomAnchor, constant: 4),
+                keypadStack.heightAnchor.constraint(equalToConstant: 138),
+                keypadStack.bottomAnchor.constraint(lessThanOrEqualTo: safeAreaLayoutGuide.bottomAnchor, constant: -2),
+            ])
+        }
 
         typePicker.selectRow(0, inComponent: 0, animated: false)
         unitPicker.selectRow(0, inComponent: 0, animated: false)
@@ -1451,7 +1561,10 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: 16, weight: .semibold)
+        button.titleLabel?.font = UIFont.monospacedSystemFont(ofSize: compactLayout ? 14 : 15, weight: .semibold)
+        button.titleLabel?.adjustsFontSizeToFitWidth = true
+        button.titleLabel?.minimumScaleFactor = 0.72
+        button.contentEdgeInsets = UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
         button.layer.cornerRadius = 10
@@ -1916,6 +2029,7 @@ struct ScratchpadTextView: UIViewRepresentable {
         private var orientationObserver: NSObjectProtocol?
         private var contentOffsetObserver: NSKeyValueObservation?
         private weak var horizontalPanRecognizer: UIPanGestureRecognizer?
+        private weak var emptyEditorTapRecognizer: UITapGestureRecognizer?
         private var horizontalPanStartOffsetX: CGFloat = 0
         private let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
 
@@ -1947,6 +2061,13 @@ struct ScratchpadTextView: UIViewRepresentable {
                 container.editorScrollView.addGestureRecognizer(panRecognizer)
                 horizontalPanRecognizer = panRecognizer
             }
+            if emptyEditorTapRecognizer == nil {
+                let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleEmptyEditorTap(_:)))
+                tapRecognizer.delegate = self
+                tapRecognizer.cancelsTouchesInView = false
+                container.editorScrollView.addGestureRecognizer(tapRecognizer)
+                emptyEditorTapRecognizer = tapRecognizer
+            }
             contentOffsetObserver?.invalidate()
             contentOffsetObserver = container.textView.observe(\.contentOffset, options: [.initial, .new]) { [weak self] textView, _ in
                 guard let self else { return }
@@ -1977,6 +2098,9 @@ struct ScratchpadTextView: UIViewRepresentable {
                 },
                 onPageChange: { [weak self] page in
                     self?.syncInputModeFromPage(page)
+                },
+                onDismissKeyboard: { [weak container] in
+                    container?.textView.resignFirstResponder()
                 }
             )
             let keyboardHost = customKeyboardHost ?? MonsterKeyboardHostView(keyboardView: keyboard)
@@ -2081,22 +2205,40 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
         }
 
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard gestureRecognizer === horizontalPanRecognizer,
-                  let panGesture = gestureRecognizer as? UIPanGestureRecognizer,
-                  let scrollView = panGesture.view as? UIScrollView
-            else {
-                return true
+        @objc private func handleEmptyEditorTap(_ gesture: UITapGestureRecognizer) {
+            guard gesture.state == .ended, let container else {
+                return
             }
 
-            let velocity = panGesture.velocity(in: scrollView)
-            let isHorizontal = abs(velocity.x) > abs(velocity.y)
-            let hasHorizontalOverflow = scrollView.contentSize.width > scrollView.bounds.width + 1
-            return isHorizontal && hasHorizontalOverflow
+            let textView = container.textView
+            guard (textView.text ?? "").isEmpty else {
+                return
+            }
+
+            textView.becomeFirstResponder()
+            textView.selectedRange = NSRange(location: 0, length: 0)
+            refreshInlineHint(in: container)
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === horizontalPanRecognizer,
+               let panGesture = gestureRecognizer as? UIPanGestureRecognizer,
+               let scrollView = panGesture.view as? UIScrollView {
+                let velocity = panGesture.velocity(in: scrollView)
+                let isHorizontal = abs(velocity.x) > abs(velocity.y)
+                let hasHorizontalOverflow = scrollView.contentSize.width > scrollView.bounds.width + 1
+                return isHorizontal && hasHorizontalOverflow
+            }
+
+            if gestureRecognizer === emptyEditorTapRecognizer {
+                return (container?.textView.text ?? "").isEmpty
+            }
+
+            return true
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-            gestureRecognizer === horizontalPanRecognizer
+            gestureRecognizer === horizontalPanRecognizer || gestureRecognizer === emptyEditorTapRecognizer
         }
 
         func insertToken(_ token: String, into container: EditorContainerView) {

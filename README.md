@@ -118,7 +118,7 @@ ls /opt/homebrew/bin/maestro /usr/local/bin/maestro 2>/dev/null
 
 Open the HTML guide in a browser:
 
-- `UserGuide.html`
+- `MonsterCalc_iPhone/UserGuide.html`
 
 It includes:
 
@@ -170,7 +170,6 @@ It includes:
 
 ### Still In Progress
 
-- full unit conversion evaluation
 - broader feature coverage outside the current math/programming/EE core
 
 ## Project Layout
@@ -184,7 +183,8 @@ It includes:
 - `MonsterCalc_iPhoneUITests/`: XCUITest launch and screenshot coverage
 - `MonsterCalc_iPhoneUITests/__Snapshots__/`: baseline PNGs for snapshot verification
 - `.maestro/`: Maestro smoke flow and notes
-- `UserGuide.html`: end-user documentation
+- `MonsterCalc_iPhone/UserGuide.html`: end-user documentation
+- `MonsterCalc_iPhone/ReleaseNotes.html`: in-app release notes
 
 ## Known Limits
 
