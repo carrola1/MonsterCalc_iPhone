@@ -82,9 +82,11 @@ final class ScratchpadViewModel: ObservableObject {
     private let defaults: UserDefaults
     private var currentSheetID: UUID?
     private var isApplyingProgrammaticText = false
+    private let uiTestingDemoKey: String?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.uiTestingDemoKey = Self.uiTestingDemoKey(from: ProcessInfo.processInfo.arguments)
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-reset"),
            let bundleIdentifier = Bundle.main.bundleIdentifier
         {
@@ -98,7 +100,9 @@ final class ScratchpadViewModel: ObservableObject {
         self.savedSheets = Self.loadSavedSheets(from: defaults)
         self.currentSheetID = defaults.string(forKey: SettingKey.currentSheetID).flatMap(UUID.init(uuidString:))
 
-        if let storedText = defaults.string(forKey: SettingKey.currentSheetText) {
+        if let uiTestingDemoKey {
+            applyProgrammaticSheetState(text: DemoSheet.text(for: uiTestingDemoKey), sheetID: nil)
+        } else if let storedText = defaults.string(forKey: SettingKey.currentSheetText) {
             applyProgrammaticSheetState(text: storedText, sheetID: currentSheetID)
         } else if defaults.bool(forKey: SettingKey.hasSeenInitialDemo) {
             applyProgrammaticSheetState(text: "", sheetID: nil)
@@ -203,6 +207,15 @@ final class ScratchpadViewModel: ObservableObject {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return (try? decoder.decode([SavedSheet].self, from: data)) ?? []
+    }
+
+    private static func uiTestingDemoKey(from arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: "--ui-testing-demo"),
+              arguments.indices.contains(index + 1)
+        else {
+            return nil
+        }
+        return arguments[index + 1]
     }
 }
 
@@ -449,23 +462,13 @@ struct ContentView: View {
                 .frame(height: 1)
 
             HStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    ScratchpadTextView(
-                        text: $model.text,
-                        pendingInsertion: $model.pendingInsertion,
-                        scrollOffset: $synchronizedScrollOffset,
-                        inputMode: $inputMode,
-                        scrollBridge: scrollBridge
-                    )
-
-                    if model.text.isEmpty {
-                        Text("One expr per line\n\nx = 2*pi\nvdiv(5, 10k, 10k)\nline2 + ans")
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 12)
-                            .padding(.leading, 53)
-                    }
-                }
+                ScratchpadTextView(
+                    text: $model.text,
+                    pendingInsertion: $model.pendingInsertion,
+                    scrollOffset: $synchronizedScrollOffset,
+                    inputMode: $inputMode,
+                    scrollBridge: scrollBridge
+                )
                 .frame(width: editorWidth, height: workspaceHeight)
 
                 Rectangle()

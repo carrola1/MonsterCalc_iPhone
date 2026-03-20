@@ -60,6 +60,53 @@ final class MonsterCalc_iPhoneUITests: XCTestCase {
     }
 
     @MainActor
+    func testRecordAppStoreScreenshots() throws {
+        var app = launchApp(demo: nil)
+        let editor = app.textViews["scratchpad.editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["scratchpad.title"].waitForExistence(timeout: 5))
+
+        recordAppStoreScreenshot(named: "01-home")
+
+        app.terminate()
+        app = launchApp(demo: "ee")
+        let eeEditor = app.textViews["scratchpad.editor"]
+        XCTAssertTrue(eeEditor.waitForExistence(timeout: 5))
+        eeEditor.tap()
+        XCTAssertTrue(app.segmentedControls["keyboard.modeSelector"].waitForExistence(timeout: 5))
+        app.buttons["EE"].tap()
+        assertHintContains("Electrical", in: app)
+        recordAppStoreScreenshot(named: "02-ee-keyboard")
+
+        app.terminate()
+        app = launchApp(demo: "prog")
+        let progEditor = app.textViews["scratchpad.editor"]
+        XCTAssertTrue(progEditor.waitForExistence(timeout: 5))
+        progEditor.tap()
+        XCTAssertTrue(app.segmentedControls["keyboard.modeSelector"].waitForExistence(timeout: 5))
+        app.buttons["Prog"].tap()
+        assertHintContains("Programming", in: app)
+        recordAppStoreScreenshot(named: "03-prog-keyboard")
+
+        app.terminate()
+        app = launchApp(demo: "convert")
+        let convertEditor = app.textViews["scratchpad.editor"]
+        XCTAssertTrue(convertEditor.waitForExistence(timeout: 5))
+        convertEditor.tap()
+        XCTAssertTrue(app.segmentedControls["keyboard.modeSelector"].waitForExistence(timeout: 5))
+        app.buttons["Convert"].tap()
+        assertHintContains("conversion", in: app)
+        recordAppStoreScreenshot(named: "04-convert-keyboard")
+
+        app.terminate()
+        app = launchApp(demo: nil)
+        XCTAssertTrue(app.buttons["header.menu"].waitForExistence(timeout: 5))
+        app.buttons["header.menu"].tap()
+        XCTAssertTrue(app.buttons["Load Sheet"].waitForExistence(timeout: 5))
+        recordAppStoreScreenshot(named: "05-menu")
+    }
+
+    @MainActor
     func testEditorHorizontalScrollFollowsCaretAndAllowsManualPanning() throws {
         let app = launchApp()
         let editor = app.textViews["scratchpad.editor"]
@@ -86,9 +133,12 @@ final class MonsterCalc_iPhoneUITests: XCTestCase {
         XCTAssertGreaterThan(afterSwipeLeft, afterSwipeRight + 5, "Expected manual swipe left to move the editor toward the long-line tail")
     }
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(demo: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["--ui-testing", "--ui-testing-reset"]
+        if let demo {
+            app.launchArguments += ["--ui-testing-demo", demo]
+        }
         app.launch()
         return app
     }
@@ -101,6 +151,13 @@ final class MonsterCalc_iPhoneUITests: XCTestCase {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("__Snapshots__", isDirectory: true)
+    }
+
+    private var appStoreScreenshotDirectory: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("AppStoreScreenshots", isDirectory: true)
     }
 
     private func assertSnapshot(
@@ -235,6 +292,41 @@ final class MonsterCalc_iPhoneUITests: XCTestCase {
             attachment.lifetime = .keepAlways
             activity.add(attachment)
         }
+    }
+
+    private func recordAppStoreScreenshot(named name: String, file: StaticString = #filePath, line: UInt = #line) {
+        let screenshot = XCUIScreen.main.screenshot()
+        attachScreenshot(named: "app-store-\(name)", screenshot: screenshot)
+
+        guard let pngData = screenshot.image.pngData() else {
+            XCTFail("Unable to encode App Store screenshot PNG", file: file, line: line)
+            return
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: appStoreScreenshotDirectory,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+            try pngData.write(
+                to: appStoreScreenshotDirectory.appendingPathComponent("\(name).png"),
+                options: .atomic
+            )
+        } catch {
+            XCTFail("Unable to write App Store screenshot \(name): \(error)", file: file, line: line)
+        }
+    }
+
+    private func assertHintContains(_ token: String, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let hint = app.staticTexts["keyboard.hint"]
+        XCTAssertTrue(hint.waitForExistence(timeout: 3), "Keyboard hint did not appear", file: file, line: line)
+        XCTAssertTrue(
+            hint.label.localizedCaseInsensitiveContains(token),
+            "Expected keyboard hint to contain '\(token)', got '\(hint.label)'",
+            file: file,
+            line: line
+        )
     }
 
     private func horizontalOffset(from editor: XCUIElement, file: StaticString = #filePath, line: UInt = #line) throws -> Double {

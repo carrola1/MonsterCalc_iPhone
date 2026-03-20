@@ -17,7 +17,7 @@ final class NonWrappingTextView: UITextView {
     }
 
     private func plainFont() -> UIFont {
-        font ?? UIFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+        font ?? ScratchpadStyle.font
     }
 
     private func measuredLineWidth(_ line: String) -> CGFloat {
@@ -281,8 +281,6 @@ private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
     KeyboardKey(label: "sum", action: .insert("sum("), description: "Sum values"),
     KeyboardKey(label: "min", action: .insert("min("), description: "Minimum value"),
     KeyboardKey(label: "max", action: .insert("max("), description: "Maximum value"),
-    KeyboardKey(label: "cdf", action: .insert("cdf("), description: "Normal cumulative distribution"),
-    KeyboardKey(label: "pdf", action: .insert("pdf("), description: "Normal probability density"),
     KeyboardKey(
         label: "rnd",
         action: .insert("floor("),
@@ -290,6 +288,17 @@ private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
         menuOptions: [
             KeyboardKey(label: "floor", action: .insert("floor("), description: "Round down"),
             KeyboardKey(label: "ceil", action: .insert("ceil("), description: "Round up"),
+        ]
+    ),
+    KeyboardKey(label: "pdf", action: .insert("pdf("), description: "Normal probability density"),
+    KeyboardKey(label: "cdf", action: .insert("cdf("), description: "Normal cumulative distribution"),
+    KeyboardKey(
+        label: "⌫",
+        action: .backspace,
+        description: "Delete backward",
+        menuOptions: [
+            KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
+            KeyboardKey(label: "All", action: .clearAll, description: "Clear entire scratchpad"),
         ]
     ),
 ])
@@ -1009,8 +1018,7 @@ final class MonsterKeyboardView: UIView {
                 KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("findrdiv"), key("Ohm's"), key("AC")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("dB"), key("RC"), key("ledr")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("Conv")], columns: 1, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("⌫")], columns: 1, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("Conv"), key("⌫")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
             ]
         case "Prog":
             return [
@@ -1050,7 +1058,7 @@ final class MonsterKeyboardView: UIView {
             return [
                 KeyboardRowSpec(keys: [key("π"), key("E"), key("e"), key("√"), key("^"), key("%")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("abs"), key("sin"), key("log"), key("deg"), key("rad"), key("sum")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("min"), key("max"), key("cdf"), key("pdf"), key("rnd")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("min"), key("max"), key("rnd"), key("pdf"), key("cdf"), key("⌫")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         case "EE":
             return [
@@ -1218,11 +1226,12 @@ final class MonsterKeyboardView: UIView {
         let prominentSymbol = ["⌫", "↵", "␣", "π", "√", "E", "⇧"].contains(key.label)
         let buttonFont = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
         if key.label == "␣" {
+            let baselineOffset: CGFloat = currentOrientationIsLandscape() ? 5 : 1
             let attributedTitle = NSAttributedString(
                 string: key.label,
                 attributes: [
                     .font: buttonFont,
-                    .baselineOffset: -2,
+                    .baselineOffset: baselineOffset,
                 ]
             )
             button.setAttributedTitle(attributedTitle, for: .normal)
@@ -1879,8 +1888,10 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
 }
 
 private enum ScratchpadStyle {
-    static let font = UIFont.monospacedSystemFont(ofSize: 16, weight: .regular)
-    static let numberFont = UIFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+    static let font = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
+    static let numberFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
+    static let boldFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+    static let commentFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
     static let insets = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
     static let gutterInsets = UIEdgeInsets(top: 12, left: 0, bottom: 12, right: 6)
     static let extraBottomScrollInset = ceil(font.lineHeight * 2)
@@ -2712,7 +2723,7 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
 
             for name in functionNames {
-                highlight(wordPattern: #"\b\#(name)\b"#, color: ScratchpadStyle.functionColor, font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold), in: storage, text: text)
+                highlight(wordPattern: #"\b\#(name)\b"#, color: ScratchpadStyle.functionColor, font: ScratchpadStyle.boldFont, in: storage, text: text)
             }
 
             for name in symbolNames {
@@ -2720,13 +2731,13 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
 
             for unit in unitNames {
-                highlight(wordPattern: #"\b\#(unit)\b"#, color: ScratchpadStyle.unitColor, font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold), in: storage, text: text)
+                highlight(wordPattern: #"\b\#(unit)\b"#, color: ScratchpadStyle.unitColor, font: ScratchpadStyle.boldFont, in: storage, text: text)
             }
 
             for range in regexRanges(#"\bline\d+\b"#, in: text) {
                 storage.addAttributes([
                     .foregroundColor: ScratchpadStyle.userSymbolColor,
-                    .font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold),
+                    .font: ScratchpadStyle.boldFont,
                 ], range: range)
             }
 
@@ -2734,7 +2745,7 @@ struct ScratchpadTextView: UIViewRepresentable {
                 for range in regexRanges(#"\b\#(variableName)\b"#, in: text) {
                     storage.addAttributes([
                         .foregroundColor: ScratchpadStyle.userSymbolColor,
-                        .font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold),
+                        .font: ScratchpadStyle.boldFont,
                     ], range: range)
                 }
             }
@@ -2758,7 +2769,7 @@ struct ScratchpadTextView: UIViewRepresentable {
             for range in regexRanges(#"#.*"#, in: text) {
                 storage.addAttributes([
                     .foregroundColor: ScratchpadStyle.commentColor,
-                    .font: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular),
+                    .font: ScratchpadStyle.commentFont,
                     .obliqueness: 0.18,
                 ], range: range)
             }

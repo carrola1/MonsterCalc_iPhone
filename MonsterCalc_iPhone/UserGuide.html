@@ -183,10 +183,9 @@ line2 + x</pre>
         <li>Sheets are autosaved as you work. Nonblank sheets are kept in a rolling list of the 10 most recently edited sheets.</li>
         <li>Tap a live result to insert its matching <code>lineX</code> token at the cursor.</li>
         <li>The editor shows ghost hints for built-in functions while you type.</li>
-        <li>Incomplete expressions such as <code>abs(</code> are treated as in-progress input, not hard errors.</li>
       </ul>
       <div class="callout">
-        Tip: if a helper auto-inserts a closing <code>)</code>, keep typing. The caret stays inside the parentheses so you can finish the argument naturally.
+        Tip: if a helper auto-inserts a closing <code>)</code>, keep typing. The caret stays inside the parentheses so you can finish the argument naturally, and pressing Return keeps that closing <code>)</code> on the current line.
       </div>
     </section>
 
@@ -215,39 +214,32 @@ line2 + x</pre>
           <tr>
             <th>Mode</th>
             <th>Purpose</th>
-            <th>Examples</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>Text</strong></td>
             <td>General typing for variables, function names, comments, and mixed expressions.</td>
-            <td><code>x = 2*pi</code>, <code># note</code>, <code>findrdiv</code></td>
           </tr>
           <tr>
             <td><strong>Calc</strong></td>
             <td>Digits, operators, cursor movement, space, return, and backspace.</td>
-            <td><code>12.7k * 3</code>, <code>(a + b) / 2</code></td>
           </tr>
           <tr>
             <td><strong>Math</strong></td>
-            <td><span class="math">π</span>, <span class="math">√</span>, logs, trig, probability, and engineering suffixes.</td>
-            <td><code>sqrt(2)</code>, <code>cdf(1.96)</code>, <code>10u</code></td>
+            <td><code>pi</code>, <code>sqrt</code>, logs, trig, probability, and engineering suffixes.</td>
           </tr>
           <tr>
             <td><strong>Convert</strong></td>
             <td>Choose a unit family, insert units quickly, and build conversions like <code>70 F to C</code>.</td>
-            <td><code>mm</code>, <code>in</code>, <code>70 F to C</code></td>
           </tr>
           <tr>
             <td><strong>EE</strong></td>
-            <td><span class="ee">Electrical helper functions.</span></td>
-            <td><code>vdiv(5, 10k, 10k)</code>, <code>findrdiv(5, 3.3)</code></td>
+            <td>Electrical helper functions.</td>
           </tr>
           <tr>
             <td><strong>Prog</strong></td>
-            <td><span class="prog">Programming helpers, bases, and bit operations.</span></td>
-            <td><code>0xff xor 0x0f</code>, <code>bitpunch(1, 7, 1)</code></td>
+            <td>Programming helpers, bases, and bit operations.</td>
           </tr>
         </tbody>
       </table>
@@ -260,17 +252,18 @@ line2 + x</pre>
           <tr>
             <th>Item</th>
             <th>Description</th>
-            <th>Example</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></td><td>Basic arithmetic.</td><td><code>7 % 4</code></td></tr>
-          <tr><td><code>^</code></td><td>Exponent.</td><td><code>2 ^ 10</code></td></tr>
-          <tr><td><code>&amp;</code> <code>|</code> <code>xor</code></td><td>Bitwise operators.</td><td><code>0xf0 xor 0x0f</code></td></tr>
-          <tr><td><code>&lt;&lt;</code> <code>&gt;&gt;</code></td><td>Bit shifts.</td><td><code>1 &lt;&lt; 7</code></td></tr>
-          <tr><td><code>ans</code></td><td>Previous successful result.</td><td><code>ans + 1</code></td></tr>
-          <tr><td><code>lineX</code></td><td>Result from a previous line number.</td><td><code>line3 * 2</code></td></tr>
-          <tr><td><code>#</code></td><td>Comment marker.</td><td><code>10k # pull-up</code></td></tr>
+          <tr><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></td><td>Basic arithmetic.</td></tr>
+          <tr><td><code>^</code></td><td>Exponent.</td></tr>
+          <tr><td><code>&amp;</code> <code>|</code> <code>xor</code></td><td>Bitwise operators.</td></tr>
+          <tr><td><code>&lt;&lt;</code> <code>&gt;&gt;</code></td><td>Bit shifts.</td></tr>
+          <tr><td><code>ans</code></td><td>Previous successful result.</td></tr>
+          <tr><td><code>lineX</code></td><td>Result from a previous line number.</td></tr>
+          <tr><td><code>#</code></td><td>Comment marker.</td></tr>
+          <tr><td><code>0x10</code> <code>0b1010</code></td><td>Hex and binary literal input.</td></tr>
+          <tr><td><code>p</code> <code>n</code> <code>u</code> <code>m</code> <code>k</code> <code>M</code> <code>G</code></td><td>SI engineering suffixes appended to numeric values, from pico through giga.</td></tr>
         </tbody>
       </table>
     </section>
@@ -281,81 +274,57 @@ line2 + x</pre>
       <h3>Math</h3>
       <table>
         <thead>
-          <tr><th>Function</th><th>Description</th><th>Example</th></tr>
+          <tr><th>Function</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>abs(x)</code></td><td>Absolute value.</td><td><code>abs(-5)</code></td></tr>
-          <tr><td><code>sqrt(x)</code></td><td>Square root.</td><td><code>sqrt(81)</code></td></tr>
-          <tr><td><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code></td><td>Trig functions in radians.</td><td><code>sin(pi/2)</code></td></tr>
-          <tr><td><code>asin(x)</code>, <code>acos(x)</code>, <code>atan(x)</code></td><td>Inverse trig.</td><td><code>deg(asin(1))</code></td></tr>
-          <tr><td><code>log(x)</code>, <code>log10(x)</code>, <code>log2(x)</code></td><td>Natural, base-10, and base-2 logs.</td><td><code>log10(1000)</code></td></tr>
-          <tr><td><code>exp(x)</code></td><td><code>e</code> to the power of <code>x</code>.</td><td><code>exp(1)</code></td></tr>
-          <tr><td><code>floor(x)</code>, <code>ceil(x)</code></td><td>Round down or up.</td><td><code>ceil(3.1)</code></td></tr>
-          <tr><td><code>min(...)</code>, <code>max(...)</code>, <code>sum(...)</code></td><td>Aggregate numeric arguments.</td><td><code>sum(1, 2, 3)</code></td></tr>
-          <tr><td><code>rad(x)</code>, <code>deg(x)</code></td><td>Angle conversion.</td><td><code>rad(180)</code></td></tr>
-          <tr><td><code>pdf(x)</code>, <code>cdf(x)</code></td><td>Normal distribution PDF and CDF.</td><td><code>cdf(0)</code></td></tr>
+          <tr><td><code>abs(x)</code></td><td>Absolute value.</td></tr>
+          <tr><td><code>sqrt(x)</code></td><td>Square root.</td></tr>
+          <tr><td><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code></td><td>Trig functions in radians.</td></tr>
+          <tr><td><code>asin(x)</code>, <code>acos(x)</code>, <code>atan(x)</code></td><td>Inverse trig.</td></tr>
+          <tr><td><code>log(x)</code>, <code>log10(x)</code>, <code>log2(x)</code></td><td>Natural, base-10, and base-2 logs.</td></tr>
+          <tr><td><code>exp(x)</code></td><td><code>e</code> to the power of <code>x</code>.</td></tr>
+          <tr><td><code>floor(x)</code>, <code>ceil(x)</code></td><td>Round down or up.</td></tr>
+          <tr><td><code>min(...)</code>, <code>max(...)</code>, <code>sum(...)</code></td><td>Aggregate numeric arguments.</td></tr>
+          <tr><td><code>rad(x)</code>, <code>deg(x)</code></td><td>Angle conversion.</td></tr>
+          <tr><td><code>pdf(x)</code></td><td>Normal probability density at <code>x</code>.</td></tr>
+          <tr><td><code>cdf(x)</code></td><td>Normal cumulative probability up to <code>x</code>.</td></tr>
         </tbody>
       </table>
 
       <h3>Programming</h3>
       <table>
         <thead>
-          <tr><th>Function</th><th>Description</th><th>Example</th></tr>
+          <tr><th>Function</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>hex(value[, width])</code></td><td>Format as hex text.</td><td><code>hex(255)</code></td></tr>
-          <tr><td><code>bin(value[, width])</code></td><td>Format as binary text.</td><td><code>bin(5, 8)</code></td></tr>
-          <tr><td><code>bitget(value, msb, lsb)</code></td><td>Extract a bit field.</td><td><code>bitget(0x81, 7, 7)</code></td></tr>
-          <tr><td><code>bitpunch(value, bit, state)</code></td><td>Set or clear one bit.</td><td><code>bitpunch(0x01, 7, 1)</code></td></tr>
-          <tr><td><code>a2h(text)</code></td><td>ASCII / UTF-8 text to hex.</td><td><code>a2h("Az")</code></td></tr>
-          <tr><td><code>h2a(hex)</code></td><td>Hex text to ASCII / UTF-8.</td><td><code>h2a("0x417a")</code></td></tr>
+          <tr><td><code>hex(value, width)</code></td><td>Format as hex text. Width is optional.</td></tr>
+          <tr><td><code>bin(value, width)</code></td><td>Format as binary text. Width is optional.</td></tr>
+          <tr><td><code>bitget(value, msb, lsb)</code></td><td>Extract a bit field.</td></tr>
+          <tr><td><code>bitpunch(value, bit, state)</code></td><td>Set or clear one bit.</td></tr>
+          <tr><td><code>a2h(text)</code></td><td>ASCII / UTF-8 text to hex.</td></tr>
+          <tr><td><code>h2a(hex)</code></td><td>Hex text to ASCII / UTF-8.</td></tr>
         </tbody>
       </table>
 
       <h3>Electrical</h3>
       <table>
         <thead>
-          <tr><th>Function</th><th>Description</th><th>Example</th></tr>
+          <tr><th>Function</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>vdiv(vin, r1, r2)</code></td><td>Voltage divider output.</td><td><code>vdiv(5, 10k, 10k)</code></td></tr>
-          <tr><td><code>rpar(r1, r2, ...)</code></td><td>Parallel resistance.</td><td><code>rpar(100, 100)</code></td></tr>
-          <tr><td><code>findres(target[, tol])</code></td><td>Nearest resistor value from the built-in series.</td><td><code>findres(5030)</code></td></tr>
-          <tr><td><code>findrdiv(vin, vout[, tol])</code></td><td>Find a resistor divider pair for an approximate target ratio.</td><td><code>findrdiv(5, 3.3)</code></td></tr>
-          <tr><td><code>findv(i, r)</code>, <code>findi(v, r)</code>, <code>findr(v, i)</code></td><td>Ohm's law helpers.</td><td><code>findi(5, 10k)</code></td></tr>
-          <tr><td><code>xc(f, c)</code>, <code>xl(f, l)</code></td><td>Capacitive and inductive reactance.</td><td><code>xc(1k, 0.1u)</code></td></tr>
-          <tr><td><code>db(v1, v2)</code>, <code>db10(p1, p2)</code></td><td>Voltage-ratio and power-ratio decibel helpers.</td><td><code>db(2, 1)</code></td></tr>
-          <tr><td><code>fc_rc(r, c)</code>, <code>tau(r, c)</code></td><td>RC cutoff frequency and time constant.</td><td><code>fc_rc(10k, 0.1u)</code></td></tr>
-          <tr><td><code>rc_charge(vin, t, r, c)</code>, <code>rc_discharge(v0, t, r, c)</code></td><td>RC transient voltage helpers.</td><td><code>rc_charge(5, 1m, 1k, 1u)</code></td></tr>
-          <tr><td><code>ledr(vs, vf, i)</code></td><td>LED series resistor.</td><td><code>ledr(5, 2, 20m)</code></td></tr>
-          <tr><td><code>adc(vin, vref, bits)</code>, <code>dac(code, vref, bits)</code></td><td>ADC code and DAC output voltage helpers.</td><td><code>adc(1.65, 3.3, 10)</code></td></tr>
+          <tr><td><code>vdiv(vin, r1, r2)</code></td><td>Voltage divider output.</td></tr>
+          <tr><td><code>rpar(r1, r2, ...)</code></td><td>Parallel resistance.</td></tr>
+          <tr><td><code>findres(target, tol)</code></td><td>Nearest resistor value from the built-in series. Tolerance is optional.</td></tr>
+          <tr><td><code>findrdiv(vin, vout, tol)</code></td><td>Find a resistor divider pair for an approximate target ratio. Tolerance is optional.</td></tr>
+          <tr><td><code>findv(i, r)</code>, <code>findi(v, r)</code>, <code>findr(v, i)</code></td><td>Ohm's law helpers.</td></tr>
+          <tr><td><code>xc(f, c)</code>, <code>xl(f, l)</code></td><td>Capacitive and inductive reactance.</td></tr>
+          <tr><td><code>db(v1, v2)</code>, <code>db10(p1, p2)</code></td><td>Voltage-ratio and power-ratio decibel helpers.</td></tr>
+          <tr><td><code>fc_rc(r, c)</code>, <code>tau(r, c)</code></td><td>RC cutoff frequency and time constant.</td></tr>
+          <tr><td><code>rc_charge(vin, t, r, c)</code>, <code>rc_discharge(v0, t, r, c)</code></td><td>RC transient voltage helpers.</td></tr>
+          <tr><td><code>ledr(vs, vf, i)</code></td><td>LED series resistor.</td></tr>
+          <tr><td><code>adc(vin, vref, bits)</code>, <code>dac(code, vref, bits)</code></td><td>ADC code and DAC output voltage helpers.</td></tr>
         </tbody>
       </table>
-    </section>
-
-    <section>
-      <h2>Numeric Input Shortcuts</h2>
-      <ul>
-        <li><code>0x10</code> for hex input</li>
-        <li><code>0b1010</code> for binary input</li>
-        <li><code>10p</code>, <code>10n</code>, <code>10u</code>, <code>10m</code>, <code>10k</code>, <code>10M</code>, <code>10G</code> for engineering suffixes</li>
-      </ul>
-      <pre>10k * 3
-0xff xor 0x0f
-1u * 2M</pre>
-    </section>
-
-    <section>
-      <h2>Examples</h2>
-      <pre>x = 2*pi
-vout = vdiv(5, 10k, 10k)
-line2 + x
-
-mask = bitpunch(0x01, 7, 1)
-bitget(mask, 7, 7)
-
-findres(5030)
-findrdiv(5, 3.3)</pre>
     </section>
   </main>
 </body>
