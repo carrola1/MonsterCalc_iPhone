@@ -121,4 +121,12 @@ final class ScratchpadViewModelTests: XCTestCase {
         XCTAssertEqual(model.recentSavedSheets.count, 2)
         XCTAssertEqual(model.recentSavedSheets.first?.previewLine, "second sheet")
     }
+
+    func testFontSizePersistsAcrossViewModels() {
+        let firstModel = ScratchpadViewModel(defaults: defaults)
+        firstModel.editorFontSize = 20
+
+        let secondModel = ScratchpadViewModel(defaults: defaults)
+        XCTAssertEqual(secondModel.editorFontSize, 20)
+    }
 }

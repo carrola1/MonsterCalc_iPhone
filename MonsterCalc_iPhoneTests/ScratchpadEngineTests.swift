@@ -102,6 +102,9 @@ final class ScratchpadEngineTests: XCTestCase {
             """
             sqrt(81)
             deg(pi)
+            50%
+            200 * 10%
+            mod(5, 2)
             cdf(0)
             pdf(0)
             """
@@ -110,7 +113,10 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[0].value?.numberValue ?? 0, 9, accuracy: 0.000001)
         XCTAssertEqual(results[1].value?.numberValue ?? 0, 180, accuracy: 0.000001)
         XCTAssertEqual(results[2].value?.numberValue ?? 0, 0.5, accuracy: 0.000001)
-        XCTAssertEqual(results[3].value?.numberValue ?? 0, 0.3989422804, accuracy: 0.000001)
+        XCTAssertEqual(results[3].value?.numberValue ?? 0, 20, accuracy: 0.000001)
+        XCTAssertEqual(results[4].value?.numberValue ?? 0, 1, accuracy: 0.000001)
+        XCTAssertEqual(results[5].value?.numberValue ?? 0, 0.5, accuracy: 0.000001)
+        XCTAssertEqual(results[6].value?.numberValue ?? 0, 0.3989422804, accuracy: 0.000001)
     }
 
     func testProgrammingHelpers() {
@@ -119,7 +125,7 @@ final class ScratchpadEngineTests: XCTestCase {
             hex(255)
             bin(5, 4)
             bitget(0x81, 7, 7)
-            bitpunch(1, 7, 1)
+            bitset(1, 7, 1)
             a2h("Az")
             a2h(Az)
             h2a("0x417a")
@@ -133,6 +139,12 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[4].display, "0x417a")
         XCTAssertEqual(results[5].display, "0x417a")
         XCTAssertEqual(results[6].display, "Az")
+    }
+
+    func testBitpunchAliasStillWorks() {
+        let results = engine.evaluateDocument("bitpunch(1, 7, 1)")
+
+        XCTAssertEqual(results[0].value?.numberValue ?? 0, 129, accuracy: 0.000001)
     }
 
     func testEEHelpers() throws {

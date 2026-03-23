@@ -151,9 +151,6 @@ struct ExpressionParser {
             case .slash:
                 advance()
                 value = .number(try requireNumber(value) / requireNumber(try parsePower()))
-            case .percent:
-                advance()
-                value = .number(Double(try requireInteger(value) % requireInteger(try parsePower())))
             default:
                 return value
             }
@@ -161,10 +158,19 @@ struct ExpressionParser {
     }
 
     private mutating func parsePower() throws -> CalculatorValue {
-        var value = try parseUnary()
+        var value = try parsePercent()
         if currentToken == .power {
             advance()
             value = .number(pow(try requireNumber(value), try requireNumber(try parsePower())))
+        }
+        return value
+    }
+
+    private mutating func parsePercent() throws -> CalculatorValue {
+        var value = try parseUnary()
+        while currentToken == .percent {
+            advance()
+            value = .number(try requireNumber(value) / 100)
         }
         return value
     }

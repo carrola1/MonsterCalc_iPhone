@@ -177,6 +177,10 @@ private enum CustomKeyboardMetrics {
     static let landscapeButtonHeight: CGFloat = 31
 }
 
+private let autoSpacedInsertionTokens: Set<String> = [
+    "+", "-", "*", "/", "^", "=", "xor", "<<", ">>", "&", "|", "~", "to",
+]
+
 private extension KeyboardKey {
     func withSpan(_ span: Int) -> KeyboardKey {
         KeyboardKey(
@@ -210,7 +214,14 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
     KeyboardKey(label: "0", action: .insert("0"), description: "Insert 0"),
     KeyboardKey(label: ".", action: .insert("."), description: "Decimal point"),
     KeyboardKey(label: ",", action: .insert(","), description: "Comma"),
-    KeyboardKey(label: "=", action: .insert(" = "), description: "Assignment equals"),
+    KeyboardKey(
+        label: "=",
+        action: .insert("="),
+        description: "Assignment equals",
+        menuOptions: [
+            KeyboardKey(label: "%", action: .insert("%"), description: "Percent"),
+        ]
+    ),
     KeyboardKey(
         label: "ENG",
         action: .none,
@@ -247,10 +258,10 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
 private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
     KeyboardKey(label: "π", action: .insert("pi"), description: "Pi constant"),
     KeyboardKey(label: "E", action: .insert("e"), description: "Euler's number"),
-    KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number"),
+    KeyboardKey(label: "mod", action: .insert("mod("), description: "Modulus remainder"),
     KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root"),
     KeyboardKey(label: "^", action: .insert("^"), description: "Exponent"),
-    KeyboardKey(label: "%", action: .insert("%"), description: "Modulus"),
+    KeyboardKey(label: "%", action: .insert("%"), description: "Percent"),
     KeyboardKey(label: "abs", action: .insert("abs("), description: "Absolute value"),
     KeyboardKey(
         label: "sin",
@@ -402,21 +413,21 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
     ),
     KeyboardKey(
         label: "xor",
-        action: .insert(" xor "),
+        action: .insert("xor"),
         description: "Bitwise logic operators",
         menuOptions: [
-            KeyboardKey(label: "xor", action: .insert(" xor "), description: "Bitwise XOR"),
+            KeyboardKey(label: "xor", action: .insert("xor"), description: "Bitwise XOR"),
             KeyboardKey(label: "&", action: .insert("&"), description: "Bitwise AND"),
             KeyboardKey(label: "|", action: .insert("|"), description: "Bitwise OR"),
         ]
     ),
-    KeyboardKey(label: "<<", action: .insert(" << "), description: "Shift left"),
-    KeyboardKey(label: ">>", action: .insert(" >> "), description: "Shift right"),
+    KeyboardKey(label: "<<", action: .insert("<<"), description: "Shift left"),
+    KeyboardKey(label: ">>", action: .insert(">>"), description: "Shift right"),
     KeyboardKey(label: "~", action: .insert("~"), description: "Bitwise NOT"),
     KeyboardKey(label: "hex", action: .insert("hex("), description: "Convert to hex"),
     KeyboardKey(label: "bin", action: .insert("bin("), description: "Convert to binary"),
     KeyboardKey(label: "bitget", action: .insert("bitget("), description: "Bit slice (value, msb, lsb)"),
-    KeyboardKey(label: "bitpunch", action: .insert("bitpunch("), description: "Set or clear bit", span: 2),
+    KeyboardKey(label: "bitset", action: .insert("bitset("), description: "Set or clear bit", span: 2),
     KeyboardKey(label: "a2h", action: .insert("a2h("), description: "ASCII to hex"),
     KeyboardKey(label: "h2a", action: .insert("h2a("), description: "Hex to ASCII"),
     KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
@@ -922,7 +933,7 @@ final class MonsterKeyboardView: UIView {
                     KeyboardKey(label: "_", action: .insert("_"), description: "Insert underscore"),
                     KeyboardKey(label: ".", action: .insert("."), description: "Insert period"),
                     KeyboardKey(label: ",", action: .insert(","), description: "Insert comma"),
-                    KeyboardKey(label: "=", action: .insert(" = "), description: "Assignment equals"),
+                    KeyboardKey(label: "=", action: .insert("="), description: "Assignment equals"),
                 ],
                 columns: 9,
                 rowHeight: symbolsRowHeight
@@ -1024,7 +1035,7 @@ final class MonsterKeyboardView: UIView {
             return [
                 KeyboardRowSpec(keys: [key("0x"), key("0"), key("2-9"), key("<<"), key("hex")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("0b"), key("1"), key("A-F"), key(">>"), key("bin")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitpunch", span: 2), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitset", span: 2), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("a2h"), key("h2a"), key("xor"), key("("), key(")"), key(",")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("␣", span: 4), key("⌫"), key("↵")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
             ]
@@ -1052,11 +1063,11 @@ final class MonsterKeyboardView: UIView {
                 KeyboardRowSpec(keys: [key("7"), key("8"), key("9"), key("+"), key("-"), key("("), key(")")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("4"), key("5"), key("6"), key("*"), key("/"), key("."), key(",")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("1"), key("2"), key("3"), key("="), key("ENG"), key("<-"), key("->")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("0"), key("␣", span: 3), key("↵", span: 2), key("⌫", span: 2)], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("0"), key("␣", span: 3), key("⌫", span: 2), key("↵", span: 2)], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         case "Math":
             return [
-                KeyboardRowSpec(keys: [key("π"), key("E"), key("e"), key("√"), key("^"), key("%")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("π"), key("E"), key("mod"), key("√"), key("^"), key("%")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("abs"), key("sin"), key("log"), key("deg"), key("rad"), key("sum")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("min"), key("max"), key("rnd"), key("pdf"), key("cdf"), key("⌫")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
@@ -1069,7 +1080,7 @@ final class MonsterKeyboardView: UIView {
             return [
                 KeyboardRowSpec(keys: [key("0x"), key("0b"), key("0"), key("1"), key("2-9"), key("A-F")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("<<"), key(">>"), key("hex"), key("bin"), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitpunch", span: 2), key("a2h"), key("h2a"), key("xor")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitset", span: 2), key("a2h"), key("h2a"), key("xor")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
                 KeyboardRowSpec(keys: [key("("), key(")"), key(","), key("␣", span: 2), key("⌫", span: 2), key("↵")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         default:
@@ -1487,8 +1498,16 @@ final class MonsterKeyboardView: UIView {
 extension MonsterKeyboardView: UIScrollViewDelegate {
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         let page = Int(round(scrollView.contentOffset.x / max(scrollView.bounds.width, 1)))
-        currentPage = max(0, min(page, customKeyboardPageCount - 1))
-        onPageChange(max(0, min(page, customKeyboardPageCount - 1)))
+        let clamped = max(0, min(page, customKeyboardPageCount - 1))
+        currentPage = clamped
+        if segmentedControl.selectedSegmentIndex != clamped {
+            segmentedControl.selectedSegmentIndex = clamped
+        }
+        setHint(defaultHint(for: clamped))
+        hintLabel.isHidden = false
+        hintHeightConstraint?.constant = 18
+        scrollViewTopConstraint?.constant = 6
+        onPageChange(clamped)
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
@@ -1888,13 +1907,19 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
 }
 
 private enum ScratchpadStyle {
-    static let font = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
-    static let numberFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
-    static let boldFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .bold)
-    static let commentFont = UIFont.monospacedSystemFont(ofSize: 18, weight: .regular)
+    private static var currentFontSize: CGFloat = 18
+
+    static func setFontSize(_ size: Int) {
+        currentFontSize = CGFloat(max(16, min(20, size)))
+    }
+
+    static var font: UIFont { UIFont.monospacedSystemFont(ofSize: currentFontSize, weight: .regular) }
+    static var numberFont: UIFont { UIFont.monospacedSystemFont(ofSize: currentFontSize, weight: .regular) }
+    static var boldFont: UIFont { UIFont.monospacedSystemFont(ofSize: currentFontSize, weight: .bold) }
+    static var commentFont: UIFont { UIFont.monospacedSystemFont(ofSize: currentFontSize, weight: .regular) }
     static let insets = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
     static let gutterInsets = UIEdgeInsets(top: 12, left: 0, bottom: 12, right: 6)
-    static let extraBottomScrollInset = ceil(font.lineHeight * 2)
+    static var extraBottomScrollInset: CGFloat { ceil(font.lineHeight * 2) }
     static let background = UIColor(red: 0.10, green: 0.105, blue: 0.112, alpha: 1.0)
     static let gutterBackground = UIColor(red: 0.08, green: 0.085, blue: 0.092, alpha: 1.0)
     static let text = UIColor.white
@@ -1911,11 +1936,11 @@ private enum ScratchpadStyle {
 }
 
 private let functionNames = [
-    "floor", "ceil", "min", "max", "sum", "sqrt", "abs", "log", "log10", "log2", "exp",
+    "floor", "ceil", "min", "max", "sum", "mod", "sqrt", "abs", "log", "log10", "log2", "exp",
     "sin", "cos", "tan", "asin", "acos", "atan", "rad", "deg", "cdf", "pdf", "findres",
     "findrdiv", "findv", "findi", "findr", "xc", "xl", "db", "db10", "fc_rc", "tau", "rc_charge",
     "rc_discharge", "ledr", "adc", "dac",
-    "vdiv", "rpar", "hex", "bin", "bitget", "bitpunch", "a2h", "h2a",
+    "vdiv", "rpar", "hex", "bin", "bitget", "bitset", "bitpunch", "a2h", "h2a",
 ]
 
 private let symbolNames = ["ans", "pi", "e"]
@@ -1935,6 +1960,7 @@ private let inlineFunctionSignatures: [String: String] = [
     "min": "(value1, value2, ...)",
     "max": "(value1, value2, ...)",
     "sum": "(list)",
+    "mod": "(value, divisor)",
     "sqrt": "(value)",
     "abs": "(value)",
     "log": "(value)",
@@ -1972,10 +1998,37 @@ private let inlineFunctionSignatures: [String: String] = [
     "hex": "(value)",
     "bin": "(value)",
     "bitget": "(value, msb, lsb)",
+    "bitset": "(value, bit, state)",
     "bitpunch": "(value, bit, state)",
     "a2h": "(text)",
     "h2a": "(value)",
 ]
+
+private func formattedInsertedToken(_ token: String, in textView: UITextView) -> String {
+    let normalizedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard autoSpacedInsertionTokens.contains(normalizedToken) else {
+        return token
+    }
+
+    let nsText = (textView.text ?? "") as NSString
+    let selectedRange = textView.selectedRange
+    let insertionLocation = min(selectedRange.location, nsText.length)
+    let replacementEnd = min(selectedRange.location + selectedRange.length, nsText.length)
+
+    let beforeCharacter: Character? = {
+        guard insertionLocation > 0 else { return nil }
+        return Character(nsText.substring(with: NSRange(location: insertionLocation - 1, length: 1)))
+    }()
+
+    let afterCharacter: Character? = {
+        guard replacementEnd < nsText.length else { return nil }
+        return Character(nsText.substring(with: NSRange(location: replacementEnd, length: 1)))
+    }()
+
+    let leadingSpace = beforeCharacter.map(\.isWhitespace) == false ? " " : ""
+    let trailingSpace = afterCharacter.map(\.isWhitespace) == false || afterCharacter == nil ? " " : ""
+    return "\(leadingSpace)\(normalizedToken)\(trailingSpace)"
+}
 
 private func findInlineCompletionHint(
     lineText: String,
@@ -2272,12 +2325,15 @@ struct ScratchpadTextView: UIViewRepresentable {
     @Binding var pendingInsertion: String?
     @Binding var scrollOffset: CGFloat
     @Binding var inputMode: EditorInputMode
+    var fontSize: Int
     let scrollBridge: ScrollSyncBridge
 
     func makeUIView(context: Context) -> EditorContainerView {
+        ScratchpadStyle.setFontSize(fontSize)
         let container = EditorContainerView()
         container.textView.delegate = context.coordinator
         context.coordinator.install(in: container, scrollBridge: scrollBridge)
+        context.coordinator.applyFontSize(fontSize, in: container)
         context.coordinator.applyInputMode(inputMode, in: container)
         context.coordinator.applyText(text, to: container.textView)
         context.coordinator.updateLineNumbers(in: container, text: text)
@@ -2290,6 +2346,11 @@ struct ScratchpadTextView: UIViewRepresentable {
             context.coordinator.applyText(text, to: uiView.textView)
             context.coordinator.updateLineNumbers(in: uiView, text: text)
             context.coordinator.refreshInlineHint(in: uiView)
+        }
+
+        if context.coordinator.currentFontSize != fontSize {
+            ScratchpadStyle.setFontSize(fontSize)
+            context.coordinator.applyFontSize(fontSize, in: uiView)
         }
 
         scrollBridge.registerEditor(textView: uiView.textView, gutterView: uiView.gutterView)
@@ -2310,7 +2371,7 @@ struct ScratchpadTextView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, scrollOffset: $scrollOffset, inputMode: $inputMode)
+        Coordinator(text: $text, scrollOffset: $scrollOffset, inputMode: $inputMode, fontSize: fontSize)
     }
 
     final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
@@ -2322,6 +2383,7 @@ struct ScratchpadTextView: UIViewRepresentable {
         private var isApplyingHighlight = false
         var isApplyingInsertion = false
         var inputMode: EditorInputMode
+        var currentFontSize: Int
         private weak var customKeyboard: MonsterKeyboardView?
         private weak var customKeyboardHost: MonsterKeyboardHostView?
         private var orientationObserver: NSObjectProtocol?
@@ -2331,11 +2393,32 @@ struct ScratchpadTextView: UIViewRepresentable {
         private var horizontalPanStartOffsetX: CGFloat = 0
         private let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
 
-        init(text: Binding<String>, scrollOffset: Binding<CGFloat>, inputMode: Binding<EditorInputMode>) {
+        init(text: Binding<String>, scrollOffset: Binding<CGFloat>, inputMode: Binding<EditorInputMode>, fontSize: Int) {
             _text = text
             _scrollOffset = scrollOffset
             _inputModeBinding = inputMode
             self.inputMode = inputMode.wrappedValue
+            self.currentFontSize = fontSize
+        }
+
+        func applyFontSize(_ fontSize: Int, in container: EditorContainerView) {
+            let clamped = max(16, min(20, fontSize))
+            currentFontSize = clamped
+            ScratchpadStyle.setFontSize(clamped)
+
+            container.textView.font = ScratchpadStyle.font
+            container.textView.typingAttributes = [
+                .font: ScratchpadStyle.font,
+                .foregroundColor: ScratchpadStyle.text,
+            ]
+            container.textView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: ScratchpadStyle.extraBottomScrollInset, right: 0)
+
+            container.gutterView.font = ScratchpadStyle.numberFont
+            container.gutterView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: ScratchpadStyle.extraBottomScrollInset, right: 0)
+
+            container.completionLabel.font = ScratchpadStyle.font
+            applyText(container.textView.text ?? "", to: container.textView)
+            updateLineNumbers(in: container, text: container.textView.text ?? "")
         }
 
         deinit {
@@ -2518,10 +2601,37 @@ struct ScratchpadTextView: UIViewRepresentable {
             refreshInlineHint(in: container)
         }
 
+        private func hasActiveTextSelectionInteraction(in textView: UITextView) -> Bool {
+            let recognizers =
+                (textView.gestureRecognizers ?? []) +
+                textView.subviews.flatMap { $0.gestureRecognizers ?? [] }
+
+            return recognizers.contains { recognizer in
+                switch recognizer.state {
+                case .began, .changed:
+                    if recognizer is UILongPressGestureRecognizer {
+                        return true
+                    }
+                    let className = NSStringFromClass(type(of: recognizer)).lowercased()
+                    return
+                        className.contains("selection") ||
+                        className.contains("loupe") ||
+                        className.contains("cursor") ||
+                        className.contains("drag")
+                default:
+                    return false
+                }
+            }
+        }
+
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             if gestureRecognizer === horizontalPanRecognizer,
                let panGesture = gestureRecognizer as? UIPanGestureRecognizer,
-               let scrollView = panGesture.view as? UIScrollView {
+               let scrollView = panGesture.view as? UIScrollView,
+               let textView = container?.textView {
+                guard !hasActiveTextSelectionInteraction(in: textView) else {
+                    return false
+                }
                 let velocity = panGesture.velocity(in: scrollView)
                 let isHorizontal = abs(velocity.x) > abs(velocity.y)
                 let hasHorizontalOverflow = scrollView.contentSize.width > scrollView.bounds.width + 1
@@ -2536,22 +2646,37 @@ struct ScratchpadTextView: UIViewRepresentable {
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-            gestureRecognizer === horizontalPanRecognizer || gestureRecognizer === emptyEditorTapRecognizer
+            if gestureRecognizer === horizontalPanRecognizer || otherGestureRecognizer === horizontalPanRecognizer {
+                if let textView = container?.textView, hasActiveTextSelectionInteraction(in: textView) {
+                    return false
+                }
+                return true
+            }
+
+            return gestureRecognizer === emptyEditorTapRecognizer
         }
 
         func insertToken(_ token: String, into container: EditorContainerView) {
             let textView = container.textView
-            if let range = textView.selectedTextRange {
-                textView.replace(range, withText: token)
-            } else {
-                textView.insertText(token)
-            }
-            var updatedText = textView.text ?? ""
+            let insertedToken = formattedInsertedToken(token, in: textView)
+            let currentText = textView.text ?? ""
+            let nsCurrentText = currentText as NSString
+            let selectedRange = textView.selectedRange
+            let replacementRange = NSRange(
+                location: min(selectedRange.location, nsCurrentText.length),
+                length: min(selectedRange.length, max(0, nsCurrentText.length - min(selectedRange.location, nsCurrentText.length)))
+            )
+            var updatedText = nsCurrentText.replacingCharacters(in: replacementRange, with: insertedToken)
+            textView.text = updatedText
+            textView.selectedRange = NSRange(
+                location: replacementRange.location + (insertedToken as NSString).length,
+                length: 0
+            )
             if let autoClosed = autoCloseFunctionCallIfNeeded(
                 text: updatedText,
                 cursorLocation: textView.selectedRange.location,
                 signatures: inlineFunctionSignatures,
-                insertedToken: token
+                insertedToken: insertedToken
             ) {
                 updatedText = autoClosed.text
                 textView.text = updatedText
@@ -3067,11 +3192,13 @@ final class ResultsContainerView: UIView {
 struct ResultsTextView: UIViewRepresentable {
     let results: [LineResult]
     let text: String
+    let fontSize: Int
     @Binding var scrollOffset: CGFloat
     let scrollBridge: ScrollSyncBridge
     let onInsertLineReference: (Int) -> Void
 
     func makeUIView(context: Context) -> ResultsContainerView {
+        ScratchpadStyle.setFontSize(fontSize)
         let container = ResultsContainerView()
         let textView = container.textView
         textView.onPreferredWidthChange = { [weak container] width in
@@ -3111,10 +3238,13 @@ struct ResultsTextView: UIViewRepresentable {
     }
 
         func updateUIView(_ uiView: ResultsContainerView, context: Context) {
+            ScratchpadStyle.setFontSize(fontSize)
             context.coordinator.results = results
             context.coordinator.container = uiView
             context.coordinator.installHorizontalPanIfNeeded(in: uiView)
             scrollBridge.registerResults(textView: uiView.textView)
+            uiView.textView.font = ScratchpadStyle.font
+            uiView.textView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: ScratchpadStyle.extraBottomScrollInset, right: 0)
             if uiView.textView.text != text {
                 uiView.textView.text = text
             }

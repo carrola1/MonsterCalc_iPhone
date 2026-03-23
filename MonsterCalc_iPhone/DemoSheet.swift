@@ -54,7 +54,7 @@ enum DemoSheet {
 
     # bits
     bitget(0xFF, 3, 0)
-    bitpunch(0x01, 7, 1)
+    bitset(0x01, 7, 1)
 
     # text
     a2h(Az)

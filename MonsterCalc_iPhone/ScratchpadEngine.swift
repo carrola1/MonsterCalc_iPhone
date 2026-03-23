@@ -22,6 +22,7 @@ enum ResultFormat: String, CaseIterable, Identifiable {
 struct ScratchpadEngineConfig: Equatable {
     var sigFigures: Int = 5
     var resultFormat: ResultFormat = .si
+    var editorFontSize: Int = 18
 }
 
 struct LineResult: Identifiable, Equatable {
@@ -303,6 +304,8 @@ struct ScratchpadEngine {
             return .number(normalPDF(try requireNumberArgument(arguments, 0)))
         case "cdf":
             return .number(normalCDF(try requireNumberArgument(arguments, 0)))
+        case "mod":
+            return .number(Double(try requireIntegerArgument(arguments, 0) % requireIntegerArgument(arguments, 1)))
         case "min":
             return .number(try arguments.map(requireNumber).min() ?? 0)
         case "max":
@@ -326,8 +329,8 @@ struct ScratchpadEngine {
             return .text("0b" + String(value, radix: 2))
         case "bitget":
             return .text(try bitget(arguments))
-        case "bitpunch":
-            return .number(Double(try bitpunch(arguments)))
+        case "bitset", "bitpunch":
+            return .number(Double(try bitset(arguments)))
         case "a2h":
             return .text(try asciiToHex(arguments))
         case "h2a":
@@ -500,7 +503,7 @@ struct ScratchpadEngine {
         return "0b" + String(repeating: "0", count: max(0, width - binary.count)) + binary
     }
 
-    private func bitpunch(_ arguments: [CalculatorValue]) throws -> Int {
+    private func bitset(_ arguments: [CalculatorValue]) throws -> Int {
         let value = try requireIntegerArgument(arguments, 0)
         let bit = try requireIntegerArgument(arguments, 1)
         let state = try requireIntegerArgument(arguments, 2)

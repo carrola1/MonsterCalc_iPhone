@@ -255,7 +255,8 @@ line2 + x</pre>
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></td><td>Basic arithmetic.</td></tr>
+          <tr><td><code>+</code> <code>-</code> <code>*</code> <code>/</code></td><td>Basic arithmetic.</td></tr>
+          <tr><td><code>%</code></td><td>Percent suffix. <code>50%</code> means <code>0.5</code>.</td></tr>
           <tr><td><code>^</code></td><td>Exponent.</td></tr>
           <tr><td><code>&amp;</code> <code>|</code> <code>xor</code></td><td>Bitwise operators.</td></tr>
           <tr><td><code>&lt;&lt;</code> <code>&gt;&gt;</code></td><td>Bit shifts.</td></tr>
@@ -285,6 +286,7 @@ line2 + x</pre>
           <tr><td><code>exp(x)</code></td><td><code>e</code> to the power of <code>x</code>.</td></tr>
           <tr><td><code>floor(x)</code>, <code>ceil(x)</code></td><td>Round down or up.</td></tr>
           <tr><td><code>min(...)</code>, <code>max(...)</code>, <code>sum(...)</code></td><td>Aggregate numeric arguments.</td></tr>
+          <tr><td><code>mod(x, y)</code></td><td>Integer remainder after dividing <code>x</code> by <code>y</code>.</td></tr>
           <tr><td><code>rad(x)</code>, <code>deg(x)</code></td><td>Angle conversion.</td></tr>
           <tr><td><code>pdf(x)</code></td><td>Normal probability density at <code>x</code>.</td></tr>
           <tr><td><code>cdf(x)</code></td><td>Normal cumulative probability up to <code>x</code>.</td></tr>
@@ -300,7 +302,7 @@ line2 + x</pre>
           <tr><td><code>hex(value, width)</code></td><td>Format as hex text. Width is optional.</td></tr>
           <tr><td><code>bin(value, width)</code></td><td>Format as binary text. Width is optional.</td></tr>
           <tr><td><code>bitget(value, msb, lsb)</code></td><td>Extract a bit field.</td></tr>
-          <tr><td><code>bitpunch(value, bit, state)</code></td><td>Set or clear one bit.</td></tr>
+          <tr><td><code>bitset(value, bit, state)</code></td><td>Set or clear one bit.</td></tr>
           <tr><td><code>a2h(text)</code></td><td>ASCII / UTF-8 text to hex.</td></tr>
           <tr><td><code>h2a(hex)</code></td><td>Hex text to ASCII / UTF-8.</td></tr>
         </tbody>

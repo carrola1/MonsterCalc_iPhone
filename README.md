@@ -143,12 +143,13 @@ It includes:
 
 ### Math
 
-- arithmetic: `+ - * / %`
+- arithmetic: `+ - * /`
+- percent suffix: `%`
 - exponent: `^`
 - constants: `pi`, `e`
 - trig: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`
 - logs: `log`, `log10`, `log2`, `exp`
-- rounding and aggregate helpers: `floor`, `ceil`, `min`, `max`, `sum`
+- rounding and aggregate helpers: `floor`, `ceil`, `min`, `max`, `sum`, `mod`
 - conversions: `deg`, `rad`
 - probability helpers: `pdf`, `cdf`
 - engineering suffixes: `p`, `n`, `u`, `m`, `k`, `M`, `G`
@@ -158,7 +159,7 @@ It includes:
 - hex and binary literals: `0x10`, `0b1010`
 - bitwise operators: `&`, `|`, `xor`, `<<`, `>>`
 - format helpers: `hex`, `bin`
-- bit helpers: `bitget`, `bitpunch`
+- bit helpers: `bitget`, `bitset`
 - text helpers: `a2h`, `h2a`
 
 ### Electrical / EE

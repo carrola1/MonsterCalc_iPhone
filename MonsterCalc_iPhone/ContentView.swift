@@ -41,6 +41,7 @@ final class ScratchpadViewModel: ObservableObject {
     private enum SettingKey {
         static let sigFigures = "monstercalc.sigFigures"
         static let resultFormat = "monstercalc.resultFormat"
+        static let editorFontSize = "monstercalc.editorFontSize"
         static let hasSeenInitialDemo = "monstercalc.hasSeenInitialDemo"
         static let savedSheets = "monstercalc.savedSheets"
         static let currentSheetID = "monstercalc.currentSheetID"
@@ -77,6 +78,16 @@ final class ScratchpadViewModel: ObservableObject {
             evaluate()
         }
     }
+    @Published var editorFontSize: Int {
+        didSet {
+            let clamped = max(16, min(20, editorFontSize))
+            if editorFontSize != clamped {
+                editorFontSize = clamped
+                return
+            }
+            saveSettings()
+        }
+    }
 
     private var engine = ScratchpadEngine()
     private let defaults: UserDefaults
@@ -97,6 +108,8 @@ final class ScratchpadViewModel: ObservableObject {
         self.resultFormat = ResultFormat(
             rawValue: defaults.string(forKey: SettingKey.resultFormat) ?? ""
         ) ?? .si
+        let storedEditorFontSize = defaults.object(forKey: SettingKey.editorFontSize) as? Int ?? 18
+        self.editorFontSize = max(16, min(20, storedEditorFontSize))
         self.savedSheets = Self.loadSavedSheets(from: defaults)
         self.currentSheetID = defaults.string(forKey: SettingKey.currentSheetID).flatMap(UUID.init(uuidString:))
 
@@ -151,7 +164,8 @@ final class ScratchpadViewModel: ObservableObject {
     private func evaluate() {
         engine.config = ScratchpadEngineConfig(
             sigFigures: sigFigures,
-            resultFormat: resultFormat
+            resultFormat: resultFormat,
+            editorFontSize: editorFontSize
         )
         results = engine.evaluateDocument(text)
     }
@@ -159,6 +173,7 @@ final class ScratchpadViewModel: ObservableObject {
     private func saveSettings() {
         defaults.set(sigFigures, forKey: SettingKey.sigFigures)
         defaults.set(resultFormat.rawValue, forKey: SettingKey.resultFormat)
+        defaults.set(editorFontSize, forKey: SettingKey.editorFontSize)
     }
 
     private func applyProgrammaticSheetState(text newText: String, sheetID: UUID?) {
@@ -389,6 +404,20 @@ struct ContentView: View {
                             }
                         }
                     }
+
+                    Menu("Font Size") {
+                        ForEach(16...20, id: \.self) { size in
+                            Button {
+                                model.editorFontSize = size
+                            } label: {
+                                if model.editorFontSize == size {
+                                    Label("\(size)", systemImage: "checkmark")
+                                } else {
+                                    Text("\(size)")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Section("Help") {
@@ -467,6 +496,7 @@ struct ContentView: View {
                     pendingInsertion: $model.pendingInsertion,
                     scrollOffset: $synchronizedScrollOffset,
                     inputMode: $inputMode,
+                    fontSize: model.editorFontSize,
                     scrollBridge: scrollBridge
                 )
                 .frame(width: editorWidth, height: workspaceHeight)
@@ -478,6 +508,7 @@ struct ContentView: View {
                 ResultsTextView(
                     results: model.results,
                     text: model.resultsText,
+                    fontSize: model.editorFontSize,
                     scrollOffset: $synchronizedScrollOffset,
                     scrollBridge: scrollBridge,
                     onInsertLineReference: { lineNumber in
