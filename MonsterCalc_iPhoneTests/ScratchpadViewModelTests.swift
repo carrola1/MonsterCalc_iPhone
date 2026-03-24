@@ -129,4 +129,14 @@ final class ScratchpadViewModelTests: XCTestCase {
         let secondModel = ScratchpadViewModel(defaults: defaults)
         XCTAssertEqual(secondModel.editorFontSize, 20)
     }
+
+    func testOperatorAutospacePersistsAcrossViewModels() {
+        let firstModel = ScratchpadViewModel(defaults: defaults)
+        XCTAssertTrue(firstModel.operatorAutospaceEnabled)
+
+        firstModel.operatorAutospaceEnabled = false
+
+        let secondModel = ScratchpadViewModel(defaults: defaults)
+        XCTAssertFalse(secondModel.operatorAutospaceEnabled)
+    }
 }

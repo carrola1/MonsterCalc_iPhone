@@ -491,6 +491,26 @@ private struct Tokenizer {
             break
         }
 
+        if end < text.endIndex, text[end] == "e" || text[end] == "E" {
+            let exponentStart = end
+            var exponentEnd = text.index(after: end)
+
+            if exponentEnd < text.endIndex, text[exponentEnd] == "+" || text[exponentEnd] == "-" {
+                exponentEnd = text.index(after: exponentEnd)
+            }
+
+            let digitsStart = exponentEnd
+            while exponentEnd < text.endIndex, text[exponentEnd].isNumber {
+                exponentEnd = text.index(after: exponentEnd)
+            }
+
+            if exponentEnd > digitsStart {
+                end = exponentEnd
+            } else {
+                end = exponentStart
+            }
+        }
+
         let numberText = String(text[start..<end])
         var value = Double(numberText) ?? 0
 

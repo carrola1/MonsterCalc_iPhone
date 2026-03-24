@@ -181,6 +181,8 @@ private let autoSpacedInsertionTokens: Set<String> = [
     "+", "-", "*", "/", "^", "=", "xor", "<<", ">>", "&", "|", "~", "to",
 ]
 
+private let spacerKeyboardKey = KeyboardKey(label: "", action: .none, description: "", span: 1)
+
 private extension KeyboardKey {
     func withSpan(_ span: Int) -> KeyboardKey {
         KeyboardKey(
@@ -219,6 +221,9 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
         action: .insert("="),
         description: "Assignment equals",
         menuOptions: [
+            KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number"),
+            KeyboardKey(label: "E", action: .insert("E"), description: "Times ten to the power of"),
+            KeyboardKey(label: "^", action: .insert("^"), description: "Exponent"),
             KeyboardKey(label: "%", action: .insert("%"), description: "Percent"),
         ]
     ),
@@ -257,11 +262,12 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
 
 private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
     KeyboardKey(label: "π", action: .insert("pi"), description: "Pi constant"),
-    KeyboardKey(label: "E", action: .insert("e"), description: "Euler's number"),
-    KeyboardKey(label: "mod", action: .insert("mod("), description: "Modulus remainder"),
-    KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root"),
+    KeyboardKey(label: "E", action: .insert("E"), description: "Times ten to the power of"),
+    KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number"),
     KeyboardKey(label: "^", action: .insert("^"), description: "Exponent"),
     KeyboardKey(label: "%", action: .insert("%"), description: "Percent"),
+    KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root"),
+    KeyboardKey(label: "mod", action: .insert("mod("), description: "Modulus remainder"),
     KeyboardKey(label: "abs", action: .insert("abs("), description: "Absolute value"),
     KeyboardKey(
         label: "sin",
@@ -312,6 +318,7 @@ private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
             KeyboardKey(label: "All", action: .clearAll, description: "Clear entire scratchpad"),
         ]
     ),
+    KeyboardKey(label: "↵", action: .newline, description: "New line"),
 ])
 
 private let eeKeyboardPage = KeyboardPage(title: "EE", keys: [
@@ -496,7 +503,7 @@ private let conversionCategories: [ConversionCategory] = [
         ConversionUnit(label: "KB", token: "KB"),
         ConversionUnit(label: "MB", token: "MB"),
         ConversionUnit(label: "GB", token: "GB"),
-        ConversionUnit(label: "Tb", token: "Tb"),
+        ConversionUnit(label: "TB", token: "TB"),
     ]),
 ]
 
@@ -1024,6 +1031,14 @@ final class MonsterKeyboardView: UIView {
         }
 
         switch pageModel.title {
+        case "Math":
+            return [
+                KeyboardRowSpec(keys: [key("π"), key("E"), key("abs"), key("sin"), key("log")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("e"), key("^"), key("deg"), key("rad"), key("sum")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("%"), key("√"), key("mod"), key("min"), key("max")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [spacerKeyboardKey.withSpan(2), key("rnd"), key("pdf"), key("cdf")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [spacerKeyboardKey.withSpan(3), key("⌫"), key("↵")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+            ]
         case "EE":
             return [
                 KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
@@ -1067,9 +1082,9 @@ final class MonsterKeyboardView: UIView {
             ]
         case "Math":
             return [
-                KeyboardRowSpec(keys: [key("π"), key("E"), key("mod"), key("√"), key("^"), key("%")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("abs"), key("sin"), key("log"), key("deg"), key("rad"), key("sum")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("min"), key("max"), key("rnd"), key("pdf"), key("cdf"), key("⌫")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("π"), key("E"), key("abs"), key("sin"), key("log"), key("deg"), key("rad")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("e"), key("^"), key("sum"), key("min"), key("max"), key("pdf"), key("cdf")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("%"), key("√"), spacerKeyboardKey, key("mod"), key("rnd"), key("⌫"), key("↵")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         case "EE":
             return [
@@ -1234,6 +1249,15 @@ final class MonsterKeyboardView: UIView {
     private func makeButton(for key: KeyboardKey) -> UIButton {
         let button = ExpandableKeyboardButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
+        if key.label.isEmpty {
+            button.isEnabled = false
+            button.isUserInteractionEnabled = false
+            button.backgroundColor = .clear
+            button.layer.cornerRadius = 0
+            button.accessibilityElementsHidden = true
+            return button
+        }
+        let isMathSymbolKey = ["π", "E", "e", "^", "%", "√"].contains(key.label)
         let prominentSymbol = ["⌫", "↵", "␣", "π", "√", "E", "⇧"].contains(key.label)
         let buttonFont = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
         if key.label == "␣" {
@@ -1257,7 +1281,11 @@ final class MonsterKeyboardView: UIView {
         button.setTitleColor(isLabel ? ScratchpadStyle.accent : (isActiveShiftKey ? .black : .white), for: .normal)
         button.backgroundColor = isLabel
             ? UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 1.0)
-            : (isActiveShiftKey ? ScratchpadStyle.accent : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0))
+            : (isActiveShiftKey
+                ? ScratchpadStyle.accent
+                : (isMathSymbolKey
+                    ? UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+                    : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)))
         button.layer.cornerRadius = 10
         button.accessibilityIdentifier = key.label
         if isLabel {
@@ -1580,11 +1608,18 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         buttonsRow.axis = .horizontal
         buttonsRow.spacing = compactLayout ? 8 : 10
         buttonsRow.distribution = .fillEqually
+        buttonsRow.isLayoutMarginsRelativeArrangement = true
+        buttonsRow.layoutMargins = UIEdgeInsets(
+            top: 0,
+            left: compactLayout ? 10 : 18,
+            bottom: 0,
+            right: compactLayout ? 10 : 18
+        )
 
-        let toButton = makeActionButton(title: "Insert to") { [weak self] in
+        let toButton = makeActionButton(title: "Insert to", lighter: true) { [weak self] in
             self?.onInsertTo()
         }
-        let unitButton = makeActionButton(title: "Insert Unit") { [weak self] in
+        let unitButton = makeActionButton(title: "Insert Unit", lighter: true) { [weak self] in
             guard let self else { return }
             let unit = conversionCategories[self.selectedCategoryIndex].units[self.selectedUnitIndexes[self.selectedCategoryIndex]]
             self.onInsertUnit(unit.token, "\(conversionCategories[self.selectedCategoryIndex].title): \(unit.label)")
@@ -1714,7 +1749,7 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         picker.delegate = self
     }
 
-    private func makeActionButton(title: String, menu: UIMenu? = nil, handler: @escaping () -> Void) -> UIButton {
+    private func makeActionButton(title: String, lighter: Bool = false, menu: UIMenu? = nil, handler: @escaping () -> Void) -> UIButton {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         if #available(iOS 15.0, *) {
@@ -1729,7 +1764,9 @@ final class ConversionPickerPageView: UIView, UIPickerViewDataSource, UIPickerVi
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.72
         button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
+        button.backgroundColor = lighter
+            ? UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
+            : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)
         button.layer.cornerRadius = 10
         button.menu = menu
         button.showsMenuAsPrimaryAction = false
@@ -1954,6 +1991,10 @@ private struct InlineCompletionHint {
     let ghostText: String
 }
 
+private let inlineCompletionMinimumPrefixLengths: [String: Int] = [
+    "bitset": 5,
+]
+
 private let inlineFunctionSignatures: [String: String] = [
     "floor": "(value)",
     "ceil": "(value)",
@@ -2004,9 +2045,9 @@ private let inlineFunctionSignatures: [String: String] = [
     "h2a": "(value)",
 ]
 
-private func formattedInsertedToken(_ token: String, in textView: UITextView) -> String {
+private func formattedInsertedToken(_ token: String, in textView: UITextView, operatorAutospaceEnabled: Bool) -> String {
     let normalizedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard autoSpacedInsertionTokens.contains(normalizedToken) else {
+    guard operatorAutospaceEnabled, autoSpacedInsertionTokens.contains(normalizedToken) else {
         return token
     }
 
@@ -2026,7 +2067,11 @@ private func formattedInsertedToken(_ token: String, in textView: UITextView) ->
     }()
 
     let leadingSpace = beforeCharacter.map(\.isWhitespace) == false ? " " : ""
-    let trailingSpace = afterCharacter.map(\.isWhitespace) == false || afterCharacter == nil ? " " : ""
+    let trailingSpace = (
+        afterCharacter == nil ||
+        afterCharacter == "\n" ||
+        afterCharacter.map(\.isWhitespace) == false
+    ) ? " " : ""
     return "\(leadingSpace)\(normalizedToken)\(trailingSpace)"
 }
 
@@ -2051,7 +2096,10 @@ private func findInlineCompletionHint(
         return nil
     }
 
-    let matches = signatures.keys.filter { $0.hasPrefix(fragment) }.sorted()
+    let matches = signatures.keys.filter {
+        let minimumPrefixLength = inlineCompletionMinimumPrefixLengths[$0] ?? 3
+        return fragment.count >= minimumPrefixLength && $0.hasPrefix(fragment)
+    }.sorted()
     guard matches.count == 1, let token = matches.first, let signature = signatures[token] else {
         return nil
     }
@@ -2320,12 +2368,32 @@ private func isCompleteArgumentFragment(_ fragment: String) -> Bool {
     return depth == 0 && !inString
 }
 
+func ensuredTrailingEditableLine(text: String, cursorLocation: Int) -> (text: String, cursorLocation: Int) {
+    let length = (text as NSString).length
+    let clampedCursor = max(0, min(cursorLocation, length))
+
+    if text.isEmpty {
+        return (text, clampedCursor)
+    }
+
+    if text.allSatisfy({ $0 == "\n" }) {
+        return ("", 0)
+    }
+
+    if text.hasSuffix("\n") {
+        return (text, clampedCursor)
+    }
+
+    return (text + "\n", clampedCursor)
+}
+
 struct ScratchpadTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var pendingInsertion: String?
     @Binding var scrollOffset: CGFloat
     @Binding var inputMode: EditorInputMode
     var fontSize: Int
+    var operatorAutospaceEnabled: Bool
     let scrollBridge: ScrollSyncBridge
 
     func makeUIView(context: Context) -> EditorContainerView {
@@ -2353,6 +2421,8 @@ struct ScratchpadTextView: UIViewRepresentable {
             context.coordinator.applyFontSize(fontSize, in: uiView)
         }
 
+        context.coordinator.operatorAutospaceEnabled = operatorAutospaceEnabled
+
         scrollBridge.registerEditor(textView: uiView.textView, gutterView: uiView.gutterView)
         context.coordinator.syncVerticalOffset(in: uiView, to: scrollOffset)
 
@@ -2371,7 +2441,13 @@ struct ScratchpadTextView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, scrollOffset: $scrollOffset, inputMode: $inputMode, fontSize: fontSize)
+        Coordinator(
+            text: $text,
+            scrollOffset: $scrollOffset,
+            inputMode: $inputMode,
+            fontSize: fontSize,
+            operatorAutospaceEnabled: operatorAutospaceEnabled
+        )
     }
 
     final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
@@ -2384,6 +2460,7 @@ struct ScratchpadTextView: UIViewRepresentable {
         var isApplyingInsertion = false
         var inputMode: EditorInputMode
         var currentFontSize: Int
+        var operatorAutospaceEnabled: Bool
         private weak var customKeyboard: MonsterKeyboardView?
         private weak var customKeyboardHost: MonsterKeyboardHostView?
         private var orientationObserver: NSObjectProtocol?
@@ -2393,12 +2470,19 @@ struct ScratchpadTextView: UIViewRepresentable {
         private var horizontalPanStartOffsetX: CGFloat = 0
         private let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
 
-        init(text: Binding<String>, scrollOffset: Binding<CGFloat>, inputMode: Binding<EditorInputMode>, fontSize: Int) {
+        init(
+            text: Binding<String>,
+            scrollOffset: Binding<CGFloat>,
+            inputMode: Binding<EditorInputMode>,
+            fontSize: Int,
+            operatorAutospaceEnabled: Bool
+        ) {
             _text = text
             _scrollOffset = scrollOffset
             _inputModeBinding = inputMode
             self.inputMode = inputMode.wrappedValue
             self.currentFontSize = fontSize
+            self.operatorAutospaceEnabled = operatorAutospaceEnabled
         }
 
         func applyFontSize(_ fontSize: Int, in container: EditorContainerView) {
@@ -2522,6 +2606,7 @@ struct ScratchpadTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             guard !isApplyingHighlight else { return }
             var updatedText = textView.text ?? ""
+            var updatedCursorLocation = textView.selectedRange.location
             if textView.markedTextRange != nil {
                 text = updatedText
                 if let container {
@@ -2532,13 +2617,22 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
             if let autoClosed = autoCloseFunctionCallIfNeeded(
                 text: updatedText,
-                cursorLocation: textView.selectedRange.location,
+                cursorLocation: updatedCursorLocation,
                 signatures: inlineFunctionSignatures
             ) {
                 updatedText = autoClosed.text
-                textView.text = updatedText
-                textView.selectedRange = NSRange(location: autoClosed.cursorLocation, length: 0)
+                updatedCursorLocation = autoClosed.cursorLocation
             }
+            let normalized = ensuredTrailingEditableLine(
+                text: updatedText,
+                cursorLocation: updatedCursorLocation
+            )
+            updatedText = normalized.text
+            updatedCursorLocation = normalized.cursorLocation
+            if textView.text != updatedText {
+                textView.text = updatedText
+            }
+            textView.selectedRange = NSRange(location: updatedCursorLocation, length: 0)
             applyText(updatedText, to: textView)
             text = updatedText
             if let container {
@@ -2658,7 +2752,7 @@ struct ScratchpadTextView: UIViewRepresentable {
 
         func insertToken(_ token: String, into container: EditorContainerView) {
             let textView = container.textView
-            let insertedToken = formattedInsertedToken(token, in: textView)
+            let insertedToken = formattedInsertedToken(token, in: textView, operatorAutospaceEnabled: operatorAutospaceEnabled)
             let currentText = textView.text ?? ""
             let nsCurrentText = currentText as NSString
             let selectedRange = textView.selectedRange
@@ -2682,6 +2776,13 @@ struct ScratchpadTextView: UIViewRepresentable {
                 textView.text = updatedText
                 textView.selectedRange = NSRange(location: autoClosed.cursorLocation, length: 0)
             }
+            let normalized = ensuredTrailingEditableLine(
+                text: updatedText,
+                cursorLocation: textView.selectedRange.location
+            )
+            updatedText = normalized.text
+            textView.text = updatedText
+            textView.selectedRange = NSRange(location: normalized.cursorLocation, length: 0)
             applyText(updatedText, to: textView)
             updateLineNumbers(in: container, text: updatedText)
             text = updatedText
@@ -2876,6 +2977,10 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
 
             for range in regexRanges(#"\b(?:ans|pi|e)\b"#, in: text) {
+                storage.addAttribute(.foregroundColor, value: ScratchpadStyle.symbolColor, range: range)
+            }
+
+            for range in regexRanges(#"(?<=\d)[eE](?=[+-]?\d)"#, in: text) {
                 storage.addAttribute(.foregroundColor, value: ScratchpadStyle.symbolColor, range: range)
             }
 

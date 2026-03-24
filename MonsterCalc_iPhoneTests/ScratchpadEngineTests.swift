@@ -199,6 +199,9 @@ final class ScratchpadEngineTests: XCTestCase {
             25.4 mm to in
             x = 2
             x in to mm
+            1024 bytes to KB
+            1 KB to bytes
+            1 KB to bits
             """
         )
 
@@ -209,6 +212,12 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[2].value?.numberValue ?? 0, 2.0, accuracy: 0.000001)
         XCTAssertEqual(results[3].display, "50.8 mm")
         XCTAssertEqual(results[3].value?.numberValue ?? 0, 50.8, accuracy: 0.000001)
+        XCTAssertEqual(results[4].display, "1 KB")
+        XCTAssertEqual(results[4].value?.numberValue ?? 0, 1.0, accuracy: 0.000001)
+        XCTAssertEqual(results[5].display, "1024 bytes")
+        XCTAssertEqual(results[5].value?.numberValue ?? 0, 1024.0, accuracy: 0.000001)
+        XCTAssertEqual(results[6].display, "8.192k bits")
+        XCTAssertEqual(results[6].value?.numberValue ?? 0, 8192.0, accuracy: 0.000001)
     }
 
     func testExponentAndXorAreDistinct() {
@@ -230,11 +239,13 @@ final class ScratchpadEngineTests: XCTestCase {
             """
             0x10 + 0b11
             10k + 2M
+            2E3
             """
         )
 
         XCTAssertEqual(results[0].value?.numberValue ?? 0, 19, accuracy: 0.000001)
         XCTAssertEqual(results[1].value?.numberValue ?? 0, 2_010_000, accuracy: 0.000001)
+        XCTAssertEqual(results[2].value?.numberValue ?? 0, 2_000, accuracy: 0.000001)
     }
 
     func testResultFormattingSettingsAffectDisplay() {

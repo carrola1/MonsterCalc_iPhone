@@ -799,8 +799,8 @@ private let linearUnitMap: [String: LinearConversionUnit] = [
 
     "bits": .init(dimension: "memory", toBaseScale: 1.0),
     "bytes": .init(dimension: "memory", toBaseScale: 8.0),
-    "KB": .init(dimension: "memory", toBaseScale: 8_000.0),
-    "MB": .init(dimension: "memory", toBaseScale: 8_000_000.0),
-    "GB": .init(dimension: "memory", toBaseScale: 8_000_000_000.0),
-    "Tb": .init(dimension: "memory", toBaseScale: 1_000_000_000_000.0),
+    "KB": .init(dimension: "memory", toBaseScale: 8_192.0),
+    "MB": .init(dimension: "memory", toBaseScale: 8_388_608.0),
+    "GB": .init(dimension: "memory", toBaseScale: 8_589_934_592.0),
+    "TB": .init(dimension: "memory", toBaseScale: 8_796_093_022_208.0),
 ]

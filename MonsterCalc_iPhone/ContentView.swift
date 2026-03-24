@@ -42,6 +42,7 @@ final class ScratchpadViewModel: ObservableObject {
         static let sigFigures = "monstercalc.sigFigures"
         static let resultFormat = "monstercalc.resultFormat"
         static let editorFontSize = "monstercalc.editorFontSize"
+        static let operatorAutospaceEnabled = "monstercalc.operatorAutospaceEnabled"
         static let hasSeenInitialDemo = "monstercalc.hasSeenInitialDemo"
         static let savedSheets = "monstercalc.savedSheets"
         static let currentSheetID = "monstercalc.currentSheetID"
@@ -88,6 +89,11 @@ final class ScratchpadViewModel: ObservableObject {
             saveSettings()
         }
     }
+    @Published var operatorAutospaceEnabled: Bool {
+        didSet {
+            saveSettings()
+        }
+    }
 
     private var engine = ScratchpadEngine()
     private let defaults: UserDefaults
@@ -110,6 +116,7 @@ final class ScratchpadViewModel: ObservableObject {
         ) ?? .si
         let storedEditorFontSize = defaults.object(forKey: SettingKey.editorFontSize) as? Int ?? 18
         self.editorFontSize = max(16, min(20, storedEditorFontSize))
+        self.operatorAutospaceEnabled = defaults.object(forKey: SettingKey.operatorAutospaceEnabled) as? Bool ?? true
         self.savedSheets = Self.loadSavedSheets(from: defaults)
         self.currentSheetID = defaults.string(forKey: SettingKey.currentSheetID).flatMap(UUID.init(uuidString:))
 
@@ -174,6 +181,7 @@ final class ScratchpadViewModel: ObservableObject {
         defaults.set(sigFigures, forKey: SettingKey.sigFigures)
         defaults.set(resultFormat.rawValue, forKey: SettingKey.resultFormat)
         defaults.set(editorFontSize, forKey: SettingKey.editorFontSize)
+        defaults.set(operatorAutospaceEnabled, forKey: SettingKey.operatorAutospaceEnabled)
     }
 
     private func applyProgrammaticSheetState(text newText: String, sheetID: UUID?) {
@@ -418,6 +426,16 @@ struct ContentView: View {
                             }
                         }
                     }
+
+                    Button {
+                        model.operatorAutospaceEnabled.toggle()
+                    } label: {
+                        if model.operatorAutospaceEnabled {
+                            Label("Operator Autospace", systemImage: "checkmark")
+                        } else {
+                            Text("Operator Autospace")
+                        }
+                    }
                 }
 
                 Section("Help") {
@@ -497,6 +515,7 @@ struct ContentView: View {
                     scrollOffset: $synchronizedScrollOffset,
                     inputMode: $inputMode,
                     fontSize: model.editorFontSize,
+                    operatorAutospaceEnabled: model.operatorAutospaceEnabled,
                     scrollBridge: scrollBridge
                 )
                 .frame(width: editorWidth, height: workspaceHeight)
