@@ -141,6 +141,22 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[6].display, "Az")
     }
 
+    func testTextFunctionsAllowPercentAndScientificNotationCoexistsWithConstantE() {
+        let results = engine.evaluateDocument(
+            """
+            a2h("50%")
+            1e3
+            2E-3
+            e
+            """
+        )
+
+        XCTAssertEqual(results[0].display, "0x353025")
+        XCTAssertEqual(results[1].value?.numberValue ?? 0, 1_000, accuracy: 0.000001)
+        XCTAssertEqual(results[2].value?.numberValue ?? 0, 0.002, accuracy: 0.000000001)
+        XCTAssertEqual(results[3].value?.numberValue ?? 0, M_E, accuracy: 0.000000001)
+    }
+
     func testBitpunchAliasStillWorks() {
         let results = engine.evaluateDocument("bitpunch(1, 7, 1)")
 
@@ -214,7 +230,7 @@ final class ScratchpadEngineTests: XCTestCase {
         XCTAssertEqual(results[3].value?.numberValue ?? 0, 50.8, accuracy: 0.000001)
         XCTAssertEqual(results[4].display, "1 KB")
         XCTAssertEqual(results[4].value?.numberValue ?? 0, 1.0, accuracy: 0.000001)
-        XCTAssertEqual(results[5].display, "1024 bytes")
+        XCTAssertEqual(results[5].display, "1.024k bytes")
         XCTAssertEqual(results[5].value?.numberValue ?? 0, 1024.0, accuracy: 0.000001)
         XCTAssertEqual(results[6].display, "8.192k bits")
         XCTAssertEqual(results[6].value?.numberValue ?? 0, 8192.0, accuracy: 0.000001)

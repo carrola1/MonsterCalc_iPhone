@@ -130,6 +130,16 @@ final class ScratchpadViewModelTests: XCTestCase {
         XCTAssertEqual(secondModel.editorFontSize, 20)
     }
 
+    func testFontSizeClampsIntoSupportedRange() {
+        let model = ScratchpadViewModel(defaults: defaults)
+
+        model.editorFontSize = 99
+        XCTAssertEqual(model.editorFontSize, 20)
+
+        model.editorFontSize = 1
+        XCTAssertEqual(model.editorFontSize, 16)
+    }
+
     func testOperatorAutospacePersistsAcrossViewModels() {
         let firstModel = ScratchpadViewModel(defaults: defaults)
         XCTAssertTrue(firstModel.operatorAutospaceEnabled)
@@ -138,5 +148,41 @@ final class ScratchpadViewModelTests: XCTestCase {
 
         let secondModel = ScratchpadViewModel(defaults: defaults)
         XCTAssertFalse(secondModel.operatorAutospaceEnabled)
+    }
+
+    func testCurrentSheetTextRestoresAcrossViewModels() {
+        let firstModel = ScratchpadViewModel(defaults: defaults)
+        firstModel.clear()
+        firstModel.text = "restored sheet"
+
+        let secondModel = ScratchpadViewModel(defaults: defaults)
+        XCTAssertEqual(secondModel.text, "restored sheet")
+    }
+
+    func testEditingLoadedSavedSheetUpdatesExistingSavedEntry() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+        model.text = "original"
+        model.createNewSheet()
+
+        let saved = try! XCTUnwrap(model.recentSavedSheets.last)
+        model.loadSheet(saved)
+        model.text = "updated"
+
+        XCTAssertEqual(model.recentSavedSheets.count, 1)
+        XCTAssertEqual(model.recentSavedSheets[0].text, "updated")
+        XCTAssertEqual(model.recentSavedSheets[0].previewLine, "updated")
+    }
+
+    func testLoadDemoAutosavesCurrentNonBlankSheet() {
+        let model = ScratchpadViewModel(defaults: defaults)
+        model.clear()
+        model.text = "before demo"
+
+        model.loadDemo()
+
+        XCTAssertEqual(model.text, DemoSheet.text)
+        XCTAssertEqual(model.recentSavedSheets.count, 1)
+        XCTAssertEqual(model.recentSavedSheets[0].text, "before demo")
     }
 }

@@ -183,6 +183,30 @@ private let autoSpacedInsertionTokens: Set<String> = [
 
 private let spacerKeyboardKey = KeyboardKey(label: "", action: .none, description: "", span: 1)
 
+func steppedOverClosingParenCursorLocation(
+    text: String,
+    selectedRange: NSRange,
+    replacementText: String
+) -> Int? {
+    guard replacementText == ")" else {
+        return nil
+    }
+
+    let nsText = text as NSString
+    let clampedLocation = max(0, min(selectedRange.location, nsText.length))
+    let clampedLength = min(selectedRange.length, max(0, nsText.length - clampedLocation))
+    guard clampedLength == 0, clampedLocation < nsText.length else {
+        return nil
+    }
+
+    let nextCharacter = nsText.substring(with: NSRange(location: clampedLocation, length: 1))
+    guard nextCharacter == ")" else {
+        return nil
+    }
+
+    return clampedLocation + 1
+}
+
 private extension KeyboardKey {
     func withSpan(_ span: Int) -> KeyboardKey {
         KeyboardKey(
@@ -406,18 +430,15 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
         ]
     ),
     KeyboardKey(
-        label: "A-F",
-        action: .none,
-        description: "Hex digits A through F",
-        menuOptions: [
-            KeyboardKey(label: "A", action: .insert("A"), description: "Insert A"),
-            KeyboardKey(label: "B", action: .insert("B"), description: "Insert B"),
-            KeyboardKey(label: "C", action: .insert("C"), description: "Insert C"),
-            KeyboardKey(label: "D", action: .insert("D"), description: "Insert D"),
-            KeyboardKey(label: "E", action: .insert("E"), description: "Insert E"),
-            KeyboardKey(label: "F", action: .insert("F"), description: "Insert F"),
-        ]
+        label: "A",
+        action: .insert("A"),
+        description: "Insert A"
     ),
+    KeyboardKey(label: "B", action: .insert("B"), description: "Insert B"),
+    KeyboardKey(label: "C", action: .insert("C"), description: "Insert C"),
+    KeyboardKey(label: "D", action: .insert("D"), description: "Insert D"),
+    KeyboardKey(label: "E", action: .insert("E"), description: "Insert E"),
+    KeyboardKey(label: "F", action: .insert("F"), description: "Insert F"),
     KeyboardKey(
         label: "xor",
         action: .insert("xor"),
@@ -426,17 +447,24 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
             KeyboardKey(label: "xor", action: .insert("xor"), description: "Bitwise XOR"),
             KeyboardKey(label: "&", action: .insert("&"), description: "Bitwise AND"),
             KeyboardKey(label: "|", action: .insert("|"), description: "Bitwise OR"),
+            KeyboardKey(label: "~", action: .insert("~"), description: "Bitwise NOT"),
         ]
     ),
     KeyboardKey(label: "<<", action: .insert("<<"), description: "Shift left"),
     KeyboardKey(label: ">>", action: .insert(">>"), description: "Shift right"),
-    KeyboardKey(label: "~", action: .insert("~"), description: "Bitwise NOT"),
     KeyboardKey(label: "hex", action: .insert("hex("), description: "Convert to hex"),
     KeyboardKey(label: "bin", action: .insert("bin("), description: "Convert to binary"),
-    KeyboardKey(label: "bitget", action: .insert("bitget("), description: "Bit slice (value, msb, lsb)"),
-    KeyboardKey(label: "bitset", action: .insert("bitset("), description: "Set or clear bit", span: 2),
-    KeyboardKey(label: "a2h", action: .insert("a2h("), description: "ASCII to hex"),
-    KeyboardKey(label: "h2a", action: .insert("h2a("), description: "Hex to ASCII"),
+    KeyboardKey(
+        label: "funcs",
+        action: .none,
+        description: "Programming helper functions",
+        menuOptions: [
+            KeyboardKey(label: "bitget", action: .insert("bitget("), description: "Bit slice (value, msb, lsb)"),
+            KeyboardKey(label: "bitset", action: .insert("bitset("), description: "Set or clear bit"),
+            KeyboardKey(label: "a2h", action: .insert("a2h("), description: "ASCII to hex"),
+            KeyboardKey(label: "h2a", action: .insert("h2a("), description: "Hex to ASCII"),
+        ]
+    ),
     KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
     KeyboardKey(label: ")", action: .insert(")"), description: "Right parenthesis"),
     KeyboardKey(label: ",", action: .insert(","), description: "Comma"),
@@ -1044,15 +1072,15 @@ final class MonsterKeyboardView: UIView {
                 KeyboardRowSpec(keys: [key("vdiv"), key("rpar"), key("findres")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("findrdiv"), key("Ohm's"), key("AC")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
                 KeyboardRowSpec(keys: [key("dB"), key("RC"), key("ledr")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("Conv"), key("⌫")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [spacerKeyboardKey, key("Conv"), key("⌫")], columns: 3, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
             ]
         case "Prog":
             return [
-                KeyboardRowSpec(keys: [key("0x"), key("0"), key("2-9"), key("<<"), key("hex")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("0b"), key("1"), key("A-F"), key(">>"), key("bin")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitset", span: 2), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("a2h"), key("h2a"), key("xor"), key("("), key(")"), key(",")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
-                KeyboardRowSpec(keys: [key("␣", span: 4), key("⌫"), key("↵")], columns: 6, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("0x"), key("0b"), key("xor"), key("("), key(")")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("0"), key("A"), key("B"), key("<<"), key(">>")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("1"), key("C"), key("D"), key("hex"), key("bin")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("2-9"), key("E"), key("F"), key(","), key("funcs")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
+                KeyboardRowSpec(keys: [key("␣", span: 3), key("⌫"), key("↵")], columns: 5, rowHeight: CustomKeyboardMetrics.portraitButtonHeight),
             ]
         default:
             return nil
@@ -1093,10 +1121,9 @@ final class MonsterKeyboardView: UIView {
             ]
         case "Prog":
             return [
-                KeyboardRowSpec(keys: [key("0x"), key("0b"), key("0"), key("1"), key("2-9"), key("A-F")], columns: 6, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("<<"), key(">>"), key("hex"), key("bin"), key("~")], columns: 5, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("bitget", span: 2), key("bitset", span: 2), key("a2h"), key("h2a"), key("xor")], columns: 7, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
-                KeyboardRowSpec(keys: [key("("), key(")"), key(","), key("␣", span: 2), key("⌫", span: 2), key("↵")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("0x"), key("0b"), key("0"), key("1"), key("2-9"), key("A"), key("B"), key("C")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("D"), key("E"), key("F"), key("xor"), key("<<"), key(">>"), key("hex"), key("bin")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
+                KeyboardRowSpec(keys: [key("funcs", span: 2), key("("), key(")"), key(","), key("␣", span: 2), key("⌫"), key("↵")], columns: 8, rowHeight: CustomKeyboardMetrics.landscapeButtonHeight),
             ]
         default:
             return nil
@@ -1258,6 +1285,7 @@ final class MonsterKeyboardView: UIView {
             return button
         }
         let isMathSymbolKey = ["π", "E", "e", "^", "%", "√"].contains(key.label)
+        let isProgEntryKey = ["0", "1", "2-9", "A", "B", "C", "D", "E", "F"].contains(key.label)
         let prominentSymbol = ["⌫", "↵", "␣", "π", "√", "E", "⇧"].contains(key.label)
         let buttonFont = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
         if key.label == "␣" {
@@ -1283,7 +1311,7 @@ final class MonsterKeyboardView: UIView {
             ? UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 1.0)
             : (isActiveShiftKey
                 ? ScratchpadStyle.accent
-                : (isMathSymbolKey
+                : ((isMathSymbolKey || isProgEntryKey)
                     ? UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
                     : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)))
         button.layer.cornerRadius = 10
@@ -1995,7 +2023,7 @@ private let inlineCompletionMinimumPrefixLengths: [String: Int] = [
     "bitset": 5,
 ]
 
-private let inlineFunctionSignatures: [String: String] = [
+let inlineFunctionSignatures: [String: String] = [
     "floor": "(value)",
     "ceil": "(value)",
     "min": "(value1, value2, ...)",
@@ -2045,7 +2073,7 @@ private let inlineFunctionSignatures: [String: String] = [
     "h2a": "(value)",
 ]
 
-private func formattedInsertedToken(_ token: String, in textView: UITextView, operatorAutospaceEnabled: Bool) -> String {
+func formattedInsertedToken(_ token: String, in textView: UITextView, operatorAutospaceEnabled: Bool) -> String {
     let normalizedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
     guard operatorAutospaceEnabled, autoSpacedInsertionTokens.contains(normalizedToken) else {
         return token
@@ -2234,7 +2262,7 @@ private func trailingToken(in text: String) -> String? {
     return value
 }
 
-private func autoCloseFunctionCallIfNeeded(
+func autoCloseFunctionCallIfNeeded(
     text: String,
     cursorLocation: Int,
     signatures: [String: String],
@@ -2641,6 +2669,28 @@ struct ScratchpadTextView: UIViewRepresentable {
             }
         }
 
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText: String
+        ) -> Bool {
+            guard let steppedCursorLocation = steppedOverClosingParenCursorLocation(
+                text: textView.text ?? "",
+                selectedRange: range,
+                replacementText: replacementText
+            ) else {
+                return true
+            }
+
+            textView.selectedRange = NSRange(location: steppedCursorLocation, length: 0)
+            keepCaretVisible(in: textView)
+            updateEditorAccessibilityDebugState(for: textView)
+            if let container {
+                refreshInlineHint(in: container)
+            }
+            return false
+        }
+
         func textViewDidChangeSelection(_ textView: UITextView) {
             updateEditorAccessibilityDebugState(for: textView)
             guard let container else { return }
@@ -2752,6 +2802,17 @@ struct ScratchpadTextView: UIViewRepresentable {
 
         func insertToken(_ token: String, into container: EditorContainerView) {
             let textView = container.textView
+            if let steppedCursorLocation = steppedOverClosingParenCursorLocation(
+                text: textView.text ?? "",
+                selectedRange: textView.selectedRange,
+                replacementText: token
+            ) {
+                textView.selectedRange = NSRange(location: steppedCursorLocation, length: 0)
+                keepCaretVisible(in: textView)
+                updateEditorAccessibilityDebugState(for: textView)
+                refreshInlineHint(in: container)
+                return
+            }
             let insertedToken = formattedInsertedToken(token, in: textView, operatorAutospaceEnabled: operatorAutospaceEnabled)
             let currentText = textView.text ?? ""
             let nsCurrentText = currentText as NSString

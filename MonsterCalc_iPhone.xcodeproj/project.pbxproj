@@ -21,6 +21,7 @@
 		B20000000000000000000001 /* ScratchpadEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000011 /* ScratchpadEngineTests.swift */; };
 		B20000000000000000000002 /* ScratchpadViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* ScratchpadViewModelTests.swift */; };
 		B20000000000000000000003 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* XCTest.framework */; };
+		B20000000000000000000004 /* ScratchpadEditorBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000014 /* ScratchpadEditorBehaviorTests.swift */; };
 		C30000000000000000000001 /* MonsterCalc_iPhoneUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000011 /* MonsterCalc_iPhoneUITests.swift */; };
 		C30000000000000000000002 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* XCTest.framework */; };
 /* End PBXBuildFile section */
@@ -59,6 +60,7 @@
 		B20000000000000000000011 /* ScratchpadEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchpadEngineTests.swift; sourceTree = "<group>"; };
 		B20000000000000000000012 /* ScratchpadViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchpadViewModelTests.swift; sourceTree = "<group>"; };
 		B20000000000000000000013 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		B20000000000000000000014 /* ScratchpadEditorBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScratchpadEditorBehaviorTests.swift; sourceTree = "<group>"; };
 		C3000000000000000000000A /* MonsterCalc_iPhoneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MonsterCalc_iPhoneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C30000000000000000000011 /* MonsterCalc_iPhoneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonsterCalc_iPhoneUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -121,6 +123,7 @@
 		B20000000000000000000021 /* MonsterCalc_iPhoneTests */ = {
 			isa = PBXGroup;
 			children = (
+				B20000000000000000000014 /* ScratchpadEditorBehaviorTests.swift */,
 				B20000000000000000000011 /* ScratchpadEngineTests.swift */,
 				B20000000000000000000012 /* ScratchpadViewModelTests.swift */,
 			);
@@ -292,6 +295,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B20000000000000000000004 /* ScratchpadEditorBehaviorTests.swift in Sources */,
 				B20000000000000000000001 /* ScratchpadEngineTests.swift in Sources */,
 				B20000000000000000000002 /* ScratchpadViewModelTests.swift in Sources */,
 			);
