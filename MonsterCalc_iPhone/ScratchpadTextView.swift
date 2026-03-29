@@ -137,24 +137,68 @@ private enum KeyboardAction: Equatable {
     case none
 }
 
+private enum KeyboardVisualStyle {
+    case normal
+    case light
+}
+
 private struct KeyboardKey {
     let label: String
     let action: KeyboardAction
     let menuOptions: [KeyboardKey]
     let description: String
     let span: Int
+    let visualStyle: KeyboardVisualStyle
 
-    init(label: String, action: KeyboardAction, description: String, menuOptions: [KeyboardKey] = [], span: Int = 1) {
+    init(
+        label: String,
+        action: KeyboardAction,
+        description: String,
+        menuOptions: [KeyboardKey] = [],
+        span: Int = 1,
+        visualStyle: KeyboardVisualStyle = .normal
+    ) {
         self.label = label
         self.action = action
         self.menuOptions = menuOptions
         self.description = description
         self.span = max(1, span)
+        self.visualStyle = visualStyle
     }
 }
 
 final class ExpandableKeyboardButton: UIButton {
     fileprivate var expansionOptions: [KeyboardKey] = []
+    fileprivate var keyboardKey: KeyboardKey?
+    fileprivate var onTouchTracking: ((ExpandableKeyboardButton, CGPoint, UIControl.Event) -> Void)?
+
+    override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        let shouldTrack = super.beginTracking(touch, with: event)
+        onTouchTracking?(self, touch.location(in: self), .touchDown)
+        return shouldTrack
+    }
+
+    override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        let shouldTrack = super.continueTracking(touch, with: event)
+        let point = touch.location(in: self)
+        let controlEvent: UIControl.Event = bounds.contains(point) ? .touchDragInside : .touchDragOutside
+        onTouchTracking?(self, point, controlEvent)
+        return shouldTrack
+    }
+
+    override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
+        if let touch {
+            let point = touch.location(in: self)
+            let controlEvent: UIControl.Event = bounds.contains(point) ? .touchUpInside : .touchUpOutside
+            onTouchTracking?(self, point, controlEvent)
+        }
+        super.endTracking(touch, with: event)
+    }
+
+    override func cancelTracking(with event: UIEvent?) {
+        onTouchTracking?(self, .zero, .touchCancel)
+        super.cancelTracking(with: event)
+    }
 }
 
 final class ExpansionOptionButton: UIButton {
@@ -214,7 +258,8 @@ private extension KeyboardKey {
             action: action,
             description: description,
             menuOptions: menuOptions,
-            span: span
+            span: span,
+            visualStyle: visualStyle
         )
     }
 }
@@ -222,22 +267,22 @@ private extension KeyboardKey {
 private let customKeyboardPageCount = 6
 
 private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
-    KeyboardKey(label: "7", action: .insert("7"), description: "Insert 7"),
-    KeyboardKey(label: "8", action: .insert("8"), description: "Insert 8"),
-    KeyboardKey(label: "9", action: .insert("9"), description: "Insert 9"),
+    KeyboardKey(label: "7", action: .insert("7"), description: "Insert 7", visualStyle: .light),
+    KeyboardKey(label: "8", action: .insert("8"), description: "Insert 8", visualStyle: .light),
+    KeyboardKey(label: "9", action: .insert("9"), description: "Insert 9", visualStyle: .light),
     KeyboardKey(label: "+", action: .insert("+"), description: "Add"),
     KeyboardKey(label: "-", action: .insert("-"), description: "Subtract"),
-    KeyboardKey(label: "4", action: .insert("4"), description: "Insert 4"),
-    KeyboardKey(label: "5", action: .insert("5"), description: "Insert 5"),
-    KeyboardKey(label: "6", action: .insert("6"), description: "Insert 6"),
+    KeyboardKey(label: "4", action: .insert("4"), description: "Insert 4", visualStyle: .light),
+    KeyboardKey(label: "5", action: .insert("5"), description: "Insert 5", visualStyle: .light),
+    KeyboardKey(label: "6", action: .insert("6"), description: "Insert 6", visualStyle: .light),
     KeyboardKey(label: "*", action: .insert("*"), description: "Multiply"),
     KeyboardKey(label: "/", action: .insert("/"), description: "Divide"),
-    KeyboardKey(label: "1", action: .insert("1"), description: "Insert 1"),
-    KeyboardKey(label: "2", action: .insert("2"), description: "Insert 2"),
-    KeyboardKey(label: "3", action: .insert("3"), description: "Insert 3"),
+    KeyboardKey(label: "1", action: .insert("1"), description: "Insert 1", visualStyle: .light),
+    KeyboardKey(label: "2", action: .insert("2"), description: "Insert 2", visualStyle: .light),
+    KeyboardKey(label: "3", action: .insert("3"), description: "Insert 3", visualStyle: .light),
     KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
     KeyboardKey(label: ")", action: .insert(")"), description: "Right parenthesis"),
-    KeyboardKey(label: "0", action: .insert("0"), description: "Insert 0"),
+    KeyboardKey(label: "0", action: .insert("0"), description: "Insert 0", visualStyle: .light),
     KeyboardKey(label: ".", action: .insert("."), description: "Decimal point"),
     KeyboardKey(label: ",", action: .insert(","), description: "Comma"),
     KeyboardKey(
@@ -285,12 +330,12 @@ private let calcKeyboardPage = KeyboardPage(title: "Calc", keys: [
 ])
 
 private let mathKeyboardPage = KeyboardPage(title: "Math", keys: [
-    KeyboardKey(label: "π", action: .insert("pi"), description: "Pi constant"),
-    KeyboardKey(label: "E", action: .insert("E"), description: "Times ten to the power of"),
-    KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number"),
-    KeyboardKey(label: "^", action: .insert("^"), description: "Exponent"),
-    KeyboardKey(label: "%", action: .insert("%"), description: "Percent"),
-    KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root"),
+    KeyboardKey(label: "π", action: .insert("pi"), description: "Pi constant", visualStyle: .light),
+    KeyboardKey(label: "E", action: .insert("E"), description: "Times ten to the power of", visualStyle: .light),
+    KeyboardKey(label: "e", action: .insert("e"), description: "Euler's number", visualStyle: .light),
+    KeyboardKey(label: "^", action: .insert("^"), description: "Exponent", visualStyle: .light),
+    KeyboardKey(label: "%", action: .insert("%"), description: "Percent", visualStyle: .light),
+    KeyboardKey(label: "√", action: .insert("sqrt("), description: "Square root", visualStyle: .light),
     KeyboardKey(label: "mod", action: .insert("mod("), description: "Modulus remainder"),
     KeyboardKey(label: "abs", action: .insert("abs("), description: "Absolute value"),
     KeyboardKey(
@@ -412,8 +457,8 @@ private let eeKeyboardPage = KeyboardPage(title: "EE", keys: [
 private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
     KeyboardKey(label: "0x", action: .insert("0x"), description: "Hex prefix"),
     KeyboardKey(label: "0b", action: .insert("0b"), description: "Binary prefix"),
-    KeyboardKey(label: "0", action: .insert("0"), description: "Insert 0"),
-    KeyboardKey(label: "1", action: .insert("1"), description: "Insert 1"),
+    KeyboardKey(label: "0", action: .insert("0"), description: "Insert 0", visualStyle: .light),
+    KeyboardKey(label: "1", action: .insert("1"), description: "Insert 1", visualStyle: .light),
     KeyboardKey(
         label: "2-9",
         action: .none,
@@ -427,18 +472,20 @@ private let progKeyboardPage = KeyboardPage(title: "Prog", keys: [
             KeyboardKey(label: "7", action: .insert("7"), description: "Insert 7"),
             KeyboardKey(label: "8", action: .insert("8"), description: "Insert 8"),
             KeyboardKey(label: "9", action: .insert("9"), description: "Insert 9"),
-        ]
+        ],
+        visualStyle: .light
     ),
     KeyboardKey(
         label: "A",
         action: .insert("A"),
-        description: "Insert A"
+        description: "Insert A",
+        visualStyle: .light
     ),
-    KeyboardKey(label: "B", action: .insert("B"), description: "Insert B"),
-    KeyboardKey(label: "C", action: .insert("C"), description: "Insert C"),
-    KeyboardKey(label: "D", action: .insert("D"), description: "Insert D"),
-    KeyboardKey(label: "E", action: .insert("E"), description: "Insert E"),
-    KeyboardKey(label: "F", action: .insert("F"), description: "Insert F"),
+    KeyboardKey(label: "B", action: .insert("B"), description: "Insert B", visualStyle: .light),
+    KeyboardKey(label: "C", action: .insert("C"), description: "Insert C", visualStyle: .light),
+    KeyboardKey(label: "D", action: .insert("D"), description: "Insert D", visualStyle: .light),
+    KeyboardKey(label: "E", action: .insert("E"), description: "Insert E", visualStyle: .light),
+    KeyboardKey(label: "F", action: .insert("F"), description: "Insert F", visualStyle: .light),
     KeyboardKey(
         label: "xor",
         action: .insert("xor"),
@@ -643,6 +690,9 @@ final class MonsterKeyboardView: UIView {
     private var scrollViewTopConstraint: NSLayoutConstraint?
     private var activeExpansionOptionButtons: [ExpansionOptionButton] = []
     private weak var highlightedExpansionOptionButton: ExpansionOptionButton?
+    private weak var activeExpansionSourceButton: ExpandableKeyboardButton?
+    private weak var pendingExpansionButton: ExpandableKeyboardButton?
+    private var pendingExpansionWorkItem: DispatchWorkItem?
     private let textPageContainer = UIView()
     private let calcPageContainer = UIView()
     private let mathPageContainer = UIView()
@@ -857,18 +907,18 @@ final class MonsterKeyboardView: UIView {
                         KeyboardKey(label: isTextShiftEnabled ? $0.uppercased() : $0, action: .insert(isTextShiftEnabled ? $0.uppercased() : $0), description: "Insert \(isTextShiftEnabled ? $0.uppercased() : $0)")
                     },
                     columns: 10,
-                    rowHeight: 31
+                    rowHeight: 34
                 ),
                 KeyboardRowSpec(
                     keys: ["a", "s", "d", "f", "g", "h", "j", "k", "l"].map {
                         KeyboardKey(label: isTextShiftEnabled ? $0.uppercased() : $0, action: .insert(isTextShiftEnabled ? $0.uppercased() : $0), description: "Insert \(isTextShiftEnabled ? $0.uppercased() : $0)")
                     },
                     columns: 9,
-                    rowHeight: 31
+                    rowHeight: 34
                 ),
                 KeyboardRowSpec(
                     keys: [
-                        KeyboardKey(label: "⇧", action: .toggleShift, description: isTextShiftEnabled ? "Disable shift" : "Enable shift", span: 2),
+                        KeyboardKey(label: "⇧", action: .toggleShift, description: isTextShiftEnabled ? "Disable shift" : "Enable shift"),
                         KeyboardKey(label: isTextShiftEnabled ? "Z" : "z", action: .insert(isTextShiftEnabled ? "Z" : "z"), description: "Insert \(isTextShiftEnabled ? "Z" : "z")"),
                         KeyboardKey(label: isTextShiftEnabled ? "X" : "x", action: .insert(isTextShiftEnabled ? "X" : "x"), description: "Insert \(isTextShiftEnabled ? "X" : "x")"),
                         KeyboardKey(label: isTextShiftEnabled ? "C" : "c", action: .insert(isTextShiftEnabled ? "C" : "c"), description: "Insert \(isTextShiftEnabled ? "C" : "c")"),
@@ -883,23 +933,20 @@ final class MonsterKeyboardView: UIView {
                             menuOptions: [
                                 KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
                                 KeyboardKey(label: "All", action: .clearAll, description: "Clear entire scratchpad"),
-                            ],
-                            span: 2
+                            ]
                         ),
                     ],
-                    columns: 11,
-                    rowHeight: 31
+                    columns: 10,
+                    rowHeight: 34
                 ),
                 KeyboardRowSpec(
                     keys: [
-                        KeyboardKey(label: "<-", action: .moveLeft, description: "Move cursor left"),
-                        KeyboardKey(label: "->", action: .moveRight, description: "Move cursor right"),
-                        KeyboardKey(label: "#", action: .insert("# "), description: "Insert comment"),
-                        KeyboardKey(label: "␣", action: .insert(" "), description: "Space", span: 5),
+                        KeyboardKey(label: "#", action: .insert("# "), description: "Insert comment", span: 2),
+                        KeyboardKey(label: "␣", action: .insert(" "), description: "Space", span: 6),
                         KeyboardKey(label: "↵", action: .newline, description: "New line", span: 2),
                     ],
                     columns: 10,
-                    rowHeight: 31
+                    rowHeight: 34
                 ),
             ]
 
@@ -914,14 +961,33 @@ final class MonsterKeyboardView: UIView {
             return
         }
 
-        let alphaRowHeight: CGFloat = isLandscape ? 34 : 40
-        let symbolsRowHeight: CGFloat = isLandscape ? 30 : 34
-        let bottomRowHeight: CGFloat = isLandscape ? 34 : 40
-        let rowSpacing: CGFloat = isLandscape ? 4 : 6
+        let alphaRowHeight: CGFloat = 50
+        let bottomRowHeight: CGFloat = 50
+        let rowSpacing: CGFloat = 6
 
         let letters = isTextShiftEnabled
             ? ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Z", "X", "C", "V", "B", "N", "M"]
             : ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m"]
+
+        let bottomLetterRowKeys: [KeyboardKey] = [
+            KeyboardKey(label: "⇧", action: .toggleShift, description: isTextShiftEnabled ? "Disable shift" : "Enable shift"),
+            KeyboardKey(label: letters[19], action: .insert(letters[19]), description: "Insert \(letters[19])"),
+            KeyboardKey(label: letters[20], action: .insert(letters[20]), description: "Insert \(letters[20])"),
+            KeyboardKey(label: letters[21], action: .insert(letters[21]), description: "Insert \(letters[21])"),
+            KeyboardKey(label: letters[22], action: .insert(letters[22]), description: "Insert \(letters[22])"),
+            KeyboardKey(label: letters[23], action: .insert(letters[23]), description: "Insert \(letters[23])"),
+            KeyboardKey(label: letters[24], action: .insert(letters[24]), description: "Insert \(letters[24])"),
+            KeyboardKey(label: letters[25], action: .insert(letters[25]), description: "Insert \(letters[25])"),
+            KeyboardKey(
+                label: "⌫",
+                action: .backspace,
+                description: "Delete backward",
+                menuOptions: [
+                    KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
+                    KeyboardKey(label: "All", action: .clearAll, description: "Clear entire scratchpad"),
+                ]
+            ),
+        ]
 
         let rowSpecs: [KeyboardRowSpec] = [
             KeyboardRowSpec(
@@ -935,48 +1001,13 @@ final class MonsterKeyboardView: UIView {
                 rowHeight: alphaRowHeight
             ),
             KeyboardRowSpec(
-                keys: [
-                    KeyboardKey(label: "⇧", action: .toggleShift, description: isTextShiftEnabled ? "Disable shift" : "Enable shift", span: 2),
-                    KeyboardKey(label: letters[19], action: .insert(letters[19]), description: "Insert \(letters[19])"),
-                    KeyboardKey(label: letters[20], action: .insert(letters[20]), description: "Insert \(letters[20])"),
-                    KeyboardKey(label: letters[21], action: .insert(letters[21]), description: "Insert \(letters[21])"),
-                    KeyboardKey(label: letters[22], action: .insert(letters[22]), description: "Insert \(letters[22])"),
-                    KeyboardKey(label: letters[23], action: .insert(letters[23]), description: "Insert \(letters[23])"),
-                    KeyboardKey(label: letters[24], action: .insert(letters[24]), description: "Insert \(letters[24])"),
-                    KeyboardKey(label: letters[25], action: .insert(letters[25]), description: "Insert \(letters[25])"),
-                    KeyboardKey(
-                        label: "⌫",
-                        action: .backspace,
-                        description: "Delete backward",
-                        menuOptions: [
-                            KeyboardKey(label: "Line", action: .clearLine, description: "Clear current line"),
-                            KeyboardKey(label: "All", action: .clearAll, description: "Clear entire scratchpad"),
-                        ],
-                        span: 2
-                    ),
-                ],
-                columns: 11,
+                keys: bottomLetterRowKeys,
+                columns: 9,
                 rowHeight: alphaRowHeight
             ),
             KeyboardRowSpec(
                 keys: [
-                    KeyboardKey(label: "#", action: .insert("# "), description: "Insert comment"),
-                    KeyboardKey(label: "ans", action: .insert("ans"), description: "Previous result"),
-                    KeyboardKey(label: "/", action: .insert("/"), description: "Insert slash"),
-                    KeyboardKey(label: "(", action: .insert("("), description: "Left parenthesis"),
-                    KeyboardKey(label: ")", action: .insert(")"), description: "Right parenthesis"),
-                    KeyboardKey(label: "_", action: .insert("_"), description: "Insert underscore"),
-                    KeyboardKey(label: ".", action: .insert("."), description: "Insert period"),
-                    KeyboardKey(label: ",", action: .insert(","), description: "Insert comma"),
-                    KeyboardKey(label: "=", action: .insert("="), description: "Assignment equals"),
-                ],
-                columns: 9,
-                rowHeight: symbolsRowHeight
-            ),
-            KeyboardRowSpec(
-                keys: [
-                    KeyboardKey(label: "<-", action: .moveLeft, description: "Move cursor left"),
-                    KeyboardKey(label: "->", action: .moveRight, description: "Move cursor right"),
+                    KeyboardKey(label: "#", action: .insert("# "), description: "Insert comment", span: 2),
                     KeyboardKey(label: "␣", action: .insert(" "), description: "Space", span: 6),
                     KeyboardKey(label: "↵", action: .newline, description: "New line", span: 2),
                 ],
@@ -985,7 +1016,13 @@ final class MonsterKeyboardView: UIView {
             ),
         ]
 
-        let page = makeRowSpecsPage(rowSpecs, rowSpacing: rowSpacing)
+        let page = makeRowSpecsPage(
+            rowSpecs,
+            rowSpacing: rowSpacing,
+            weightedRows: [
+                2: [0.82, 1, 1, 1, 1, 1, 1, 1, 0.82]
+            ]
+        )
         textPageContainer.addSubview(page)
         NSLayoutConstraint.activate([
             page.leadingAnchor.constraint(equalTo: textPageContainer.safeAreaLayoutGuide.leadingAnchor),
@@ -1130,7 +1167,11 @@ final class MonsterKeyboardView: UIView {
         }
     }
 
-    private func makeRowSpecsPage(_ rowSpecs: [KeyboardRowSpec], rowSpacing: CGFloat) -> UIView {
+    private func makeRowSpecsPage(
+        _ rowSpecs: [KeyboardRowSpec],
+        rowSpacing: CGFloat,
+        weightedRows: [Int: [CGFloat]] = [:]
+    ) -> UIView {
         let page = UIView()
         page.translatesAutoresizingMaskIntoConstraints = false
 
@@ -1140,8 +1181,12 @@ final class MonsterKeyboardView: UIView {
         vertical.spacing = rowSpacing
         vertical.distribution = .fill
 
-        for spec in rowSpecs {
-            vertical.addArrangedSubview(makeButtonRow(spec.keys, columns: spec.columns, rowHeight: spec.rowHeight))
+        for (index, spec) in rowSpecs.enumerated() {
+            if let widthWeights = weightedRows[index] {
+                vertical.addArrangedSubview(makeWeightedButtonRow(spec.keys, widthWeights: widthWeights, rowHeight: spec.rowHeight))
+            } else {
+                vertical.addArrangedSubview(makeButtonRow(spec.keys, columns: spec.columns, rowHeight: spec.rowHeight))
+            }
         }
 
         page.addSubview(vertical)
@@ -1252,6 +1297,46 @@ final class MonsterKeyboardView: UIView {
         return row
     }
 
+    private func makeWeightedButtonRow(_ rowKeys: [KeyboardKey], widthWeights: [CGFloat], rowHeight: CGFloat) -> UIView {
+        let row = UIView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.heightAnchor.constraint(equalToConstant: rowHeight).isActive = true
+
+        guard !rowKeys.isEmpty, rowKeys.count == widthWeights.count else {
+            return row
+        }
+
+        let spacing: CGFloat = 8
+        let firstWeight = max(widthWeights[0], 0.01)
+        var firstButton: UIButton?
+        var previousButton: UIButton?
+
+        for (index, key) in rowKeys.enumerated() {
+            let button = makeButton(for: key)
+            row.addSubview(button)
+            button.topAnchor.constraint(equalTo: row.topAnchor).isActive = true
+            button.bottomAnchor.constraint(equalTo: row.bottomAnchor).isActive = true
+
+            if let previousButton {
+                button.leadingAnchor.constraint(equalTo: previousButton.trailingAnchor, constant: spacing).isActive = true
+                if let firstButton {
+                    button.widthAnchor.constraint(
+                        equalTo: firstButton.widthAnchor,
+                        multiplier: max(widthWeights[index], 0.01) / firstWeight
+                    ).isActive = true
+                }
+            } else {
+                button.leadingAnchor.constraint(equalTo: row.leadingAnchor).isActive = true
+                firstButton = button
+            }
+
+            previousButton = button
+        }
+
+        previousButton?.trailingAnchor.constraint(equalTo: row.trailingAnchor).isActive = true
+        return row
+    }
+
     private func makeConvertPage() -> UIView {
         ConversionPickerPageView(compactLayout: currentOrientationIsLandscape()) { [weak self] token, description in
             self?.setHint(description)
@@ -1276,6 +1361,7 @@ final class MonsterKeyboardView: UIView {
     private func makeButton(for key: KeyboardKey) -> UIButton {
         let button = ExpandableKeyboardButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
+        button.keyboardKey = key
         if key.label.isEmpty {
             button.isEnabled = false
             button.isUserInteractionEnabled = false
@@ -1284,8 +1370,6 @@ final class MonsterKeyboardView: UIView {
             button.accessibilityElementsHidden = true
             return button
         }
-        let isMathSymbolKey = ["π", "E", "e", "^", "%", "√"].contains(key.label)
-        let isProgEntryKey = ["0", "1", "2-9", "A", "B", "C", "D", "E", "F"].contains(key.label)
         let prominentSymbol = ["⌫", "↵", "␣", "π", "√", "E", "⇧"].contains(key.label)
         let buttonFont = UIFont.monospacedSystemFont(ofSize: prominentSymbol ? 22 : 16, weight: .semibold)
         if key.label == "␣" {
@@ -1311,7 +1395,7 @@ final class MonsterKeyboardView: UIView {
             ? UIColor(red: 0.15, green: 0.16, blue: 0.17, alpha: 1.0)
             : (isActiveShiftKey
                 ? ScratchpadStyle.accent
-                : ((isMathSymbolKey || isProgEntryKey)
+                : (key.visualStyle == .light
                     ? UIColor(red: 0.24, green: 0.25, blue: 0.27, alpha: 1.0)
                     : UIColor(red: 0.19, green: 0.20, blue: 0.215, alpha: 1.0)))
         button.layer.cornerRadius = 10
@@ -1319,31 +1403,96 @@ final class MonsterKeyboardView: UIView {
         if isLabel {
             button.isEnabled = false
         } else {
-            button.addAction(UIAction { [weak self, weak button] _ in
-                guard let self, let button else { return }
-                self.setHint(key.description)
-                if key.action == .toggleShift {
-                    self.isTextShiftEnabled.toggle()
-                    self.rebuildTextPage()
-                    return
+            button.onTouchTracking = { [weak self] sourceButton, point, event in
+                guard let self else { return }
+                let pointInKeyboard = sourceButton.convert(point, to: self)
+                let overlayPoint = sourceButton.convert(point, to: self.overlayDismissControl)
+                let hoveredExpansionOption = self.expansionOptionButton(at: overlayPoint)
+                let hoveredButton = self.keyboardButton(at: pointInKeyboard)
+                let hoveredKey = hoveredButton?.keyboardKey
+
+                switch event {
+                case .touchDown, .touchDragInside, .touchDragOutside:
+                    if self.activeExpansionView != nil {
+                        self.updateExpansionHighlight(at: overlayPoint)
+                    }
+
+                    if let hoveredExpansionOption {
+                        if let option = hoveredExpansionOption.optionKey {
+                            self.setHint(option.description)
+                        }
+                    } else if let hoveredButton, let hoveredKey, !hoveredKey.label.isEmpty {
+                        self.setHint(hoveredKey.description)
+
+                        if hoveredButton.expansionOptions.isEmpty {
+                            self.cancelPendingExpansion()
+                        } else if event == .touchDown, self.activeExpansionSourceButton == nil {
+                            self.showExpansion(from: hoveredButton)
+                        }
+
+                        if event != .touchDown, !hoveredButton.expansionOptions.isEmpty,
+                           self.activeExpansionSourceButton !== hoveredButton
+                        {
+                            self.cancelPendingExpansion()
+                            self.showExpansion(from: hoveredButton)
+                            self.updateExpansionHighlight(at: overlayPoint)
+                        } else if self.activeExpansionView != nil,
+                                  self.highlightedExpansionOptionButton == nil,
+                                  self.activeExpansionSourceButton !== hoveredButton,
+                                  hoveredButton.expansionOptions.isEmpty
+                        {
+                            self.dismissExpansion()
+                        }
+                    } else {
+                        self.cancelPendingExpansion()
+                        if self.activeExpansionView == nil || self.highlightedExpansionOptionButton == nil {
+                            self.setHint(self.defaultHint(for: self.currentPage))
+                        }
+                    }
+                case .touchUpInside, .touchUpOutside:
+                    self.cancelPendingExpansion()
+                    if self.activeExpansionView != nil {
+                        self.updateExpansionHighlight(at: overlayPoint)
+                        if self.highlightedExpansionOptionButton != nil {
+                            self.activateHighlightedExpansionOption()
+                        } else if let hoveredButton, let hoveredKey, !hoveredKey.label.isEmpty,
+                                  hoveredButton === self.activeExpansionSourceButton
+                        {
+                            if hoveredKey.action == .none, !hoveredButton.expansionOptions.isEmpty {
+                                self.dismissExpansion()
+                                self.setHint(hoveredKey.description)
+                            } else {
+                                self.dismissExpansion()
+                                self.executeKeyboardKey(hoveredKey, from: hoveredButton)
+                            }
+                        } else {
+                            self.dismissExpansion()
+                            if let hoveredButton, let hoveredKey, !hoveredKey.label.isEmpty {
+                                self.executeKeyboardKey(hoveredKey, from: hoveredButton)
+                            } else {
+                                self.setHint(self.defaultHint(for: self.currentPage))
+                            }
+                        }
+                    } else if let hoveredButton, let hoveredKey, !hoveredKey.label.isEmpty {
+                        if hoveredKey.action == .none, !hoveredButton.expansionOptions.isEmpty {
+                            self.showExpansion(from: hoveredButton)
+                            self.setHint(hoveredKey.description)
+                        } else {
+                            self.executeKeyboardKey(hoveredKey, from: hoveredButton)
+                        }
+                    } else {
+                        self.setHint(self.defaultHint(for: self.currentPage))
+                    }
+                case .touchCancel:
+                    self.cancelPendingExpansion()
+                    self.dismissExpansion()
+                    self.setHint(self.defaultHint(for: self.currentPage))
+                default:
+                    break
                 }
-                if key.action == .none, !key.menuOptions.isEmpty {
-                    self.showExpansion(from: button)
-                    return
-                }
-                self.dismissExpansion()
-                self.actionHandler(key.action)
-                if self.isTextShiftEnabled, self.shouldResetShift(after: key.action) {
-                    self.isTextShiftEnabled = false
-                    self.rebuildTextPage()
-                }
-            }, for: .touchUpInside)
+            }
             if !key.menuOptions.isEmpty {
                 button.expansionOptions = key.menuOptions
-                let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleButtonLongPress(_:)))
-                longPress.minimumPressDuration = 0.28
-                button.addGestureRecognizer(longPress)
-
                 let ellipsis = UILabel()
                 ellipsis.translatesAutoresizingMaskIntoConstraints = false
                 ellipsis.text = "…"
@@ -1359,30 +1508,84 @@ final class MonsterKeyboardView: UIView {
         return button
     }
 
-    @objc private func handleButtonLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard let button = gesture.view as? ExpandableKeyboardButton, !button.expansionOptions.isEmpty else {
+    private func executeKeyboardKey(_ key: KeyboardKey, from button: ExpandableKeyboardButton) {
+        cancelPendingExpansion()
+        setHint(key.description)
+        if key.action == .toggleShift {
+            isTextShiftEnabled.toggle()
+            rebuildTextPage()
             return
         }
-
-        switch gesture.state {
-        case .began:
+        if key.action == .none, !button.expansionOptions.isEmpty {
             showExpansion(from: button)
-            updateExpansionHighlight(at: gesture.location(in: overlayDismissControl))
-        case .changed:
-            updateExpansionHighlight(at: gesture.location(in: overlayDismissControl))
-        case .ended:
-            updateExpansionHighlight(at: gesture.location(in: overlayDismissControl))
-            activateHighlightedExpansionOption()
-        case .cancelled, .failed:
-            dismissExpansion()
-        default:
-            break
+            return
+        }
+        dismissExpansion()
+        actionHandler(key.action)
+        if isTextShiftEnabled, shouldResetShift(after: key.action) {
+            isTextShiftEnabled = false
+            rebuildTextPage()
+        }
+    }
+
+    private func cancelPendingExpansion() {
+        pendingExpansionWorkItem?.cancel()
+        pendingExpansionWorkItem = nil
+        pendingExpansionButton = nil
+    }
+
+    private func keyboardButton(at point: CGPoint) -> ExpandableKeyboardButton? {
+        let pageContainers = [
+            textPageContainer,
+            calcPageContainer,
+            mathPageContainer,
+            convertPageContainer,
+            eePageContainer,
+            progPageContainer,
+        ]
+
+        for container in pageContainers {
+            if let button = keyboardButton(in: container, at: point) {
+                return button
+            }
+        }
+
+        return nil
+    }
+
+    private func keyboardButton(in root: UIView, at point: CGPoint) -> ExpandableKeyboardButton? {
+        for subview in root.subviews.reversed() {
+            if let button = keyboardButton(in: subview, at: point) {
+                return button
+            }
+        }
+
+        guard let button = root as? ExpandableKeyboardButton,
+              button.keyboardKey?.label.isEmpty == false
+        else {
+            return nil
+        }
+
+        let frameInKeyboard = button.convert(button.bounds, to: self)
+        return frameInKeyboard.contains(point) ? button : nil
+    }
+
+    private func keyboardKey(at point: CGPoint) -> KeyboardKey? {
+        keyboardButton(at: point)?.keyboardKey
+    }
+
+    private func expansionOptionButton(at point: CGPoint) -> ExpansionOptionButton? {
+        activeExpansionOptionButtons.first { optionButton in
+            let frame = optionButton.convert(optionButton.bounds, to: overlayDismissControl).insetBy(dx: -6, dy: -10)
+            return frame.contains(point)
         }
     }
 
     private func showExpansion(from button: ExpandableKeyboardButton) {
+        cancelPendingExpansion()
         dismissExpansion()
         overlayDismissControl.isHidden = false
+        activeExpansionSourceButton = button
 
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -1446,8 +1649,10 @@ final class MonsterKeyboardView: UIView {
     }
 
     private func dismissExpansion() {
+        cancelPendingExpansion()
         activeExpansionView?.removeFromSuperview()
         activeExpansionView = nil
+        activeExpansionSourceButton = nil
         activeExpansionOptionButtons = []
         highlightedExpansionOptionButton = nil
         overlayDismissControl.isHidden = true
@@ -2262,6 +2467,59 @@ private func trailingToken(in text: String) -> String? {
     return value
 }
 
+func assignedVariableNames(in text: String) -> [String] {
+    guard let regex = try? NSRegularExpression(pattern: #"^\s*([A-Za-z_]\w*)\s*="#, options: [.anchorsMatchLines]) else {
+        return []
+    }
+    let nsText = text as NSString
+    return regex.matches(in: text, range: NSRange(location: 0, length: nsText.length)).compactMap { match in
+        guard match.numberOfRanges > 1 else {
+            return nil
+        }
+        return nsText.substring(with: match.range(at: 1))
+    }
+}
+
+func userDefinedVariableToken(in text: String, at characterIndex: Int) -> String? {
+    let nsText = text as NSString
+    guard nsText.length > 0 else {
+        return nil
+    }
+
+    let clampedIndex = max(0, min(characterIndex, nsText.length - 1))
+
+    func isTokenCharacter(_ scalar: UnicodeScalar) -> Bool {
+        CharacterSet.alphanumerics.contains(scalar) || scalar == "_"
+    }
+
+    var start = clampedIndex
+    while start > 0 {
+        let scalar = nsText.substring(with: NSRange(location: start - 1, length: 1)).unicodeScalars.first!
+        guard isTokenCharacter(scalar) else { break }
+        start -= 1
+    }
+
+    var end = clampedIndex
+    while end < nsText.length {
+        let scalar = nsText.substring(with: NSRange(location: end, length: 1)).unicodeScalars.first!
+        guard isTokenCharacter(scalar) else { break }
+        end += 1
+    }
+
+    guard end > start else {
+        return nil
+    }
+
+    let token = nsText.substring(with: NSRange(location: start, length: end - start))
+    guard let first = token.unicodeScalars.first,
+          CharacterSet.letters.contains(first) || first == "_"
+    else {
+        return nil
+    }
+
+    return Set(assignedVariableNames(in: text)).contains(token) ? token : nil
+}
+
 func autoCloseFunctionCallIfNeeded(
     text: String,
     cursorLocation: Int,
@@ -2495,7 +2753,9 @@ struct ScratchpadTextView: UIViewRepresentable {
         private var contentOffsetObserver: NSKeyValueObservation?
         private weak var horizontalPanRecognizer: UIPanGestureRecognizer?
         private weak var emptyEditorTapRecognizer: UITapGestureRecognizer?
+        private weak var variableTapRecognizer: UITapGestureRecognizer?
         private var horizontalPanStartOffsetX: CGFloat = 0
+        private var selectionBeforeVariableTap: NSRange = NSRange(location: 0, length: 0)
         private let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
 
         init(
@@ -2560,6 +2820,13 @@ struct ScratchpadTextView: UIViewRepresentable {
                 tapRecognizer.cancelsTouchesInView = false
                 container.editorScrollView.addGestureRecognizer(tapRecognizer)
                 emptyEditorTapRecognizer = tapRecognizer
+            }
+            if variableTapRecognizer == nil {
+                let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleVariableTap(_:)))
+                tapRecognizer.delegate = self
+                tapRecognizer.cancelsTouchesInView = false
+                container.textView.addGestureRecognizer(tapRecognizer)
+                variableTapRecognizer = tapRecognizer
             }
             contentOffsetObserver?.invalidate()
             contentOffsetObserver = container.textView.observe(\.contentOffset, options: [.initial, .new]) { [weak self] textView, _ in
@@ -2745,6 +3012,21 @@ struct ScratchpadTextView: UIViewRepresentable {
             refreshInlineHint(in: container)
         }
 
+        @objc private func handleVariableTap(_ gesture: UITapGestureRecognizer) {
+            guard gesture.state == .ended, let container else {
+                return
+            }
+
+            let textView = container.textView
+            let tapPoint = gesture.location(in: textView)
+            guard let token = userDefinedVariableTokenAtPoint(tapPoint, in: textView) else {
+                return
+            }
+
+            textView.selectedRange = selectionBeforeVariableTap
+            insertToken(token, into: container)
+        }
+
         private func hasActiveTextSelectionInteraction(in textView: UITextView) -> Bool {
             let recognizers =
                 (textView.gestureRecognizers ?? []) +
@@ -2786,6 +3068,14 @@ struct ScratchpadTextView: UIViewRepresentable {
                 return (container?.textView.text ?? "").isEmpty
             }
 
+            if gestureRecognizer === variableTapRecognizer {
+                guard let textView = container?.textView else {
+                    return false
+                }
+                selectionBeforeVariableTap = textView.selectedRange
+                return !(textView.text ?? "").isEmpty
+            }
+
             return true
         }
 
@@ -2797,7 +3087,7 @@ struct ScratchpadTextView: UIViewRepresentable {
                 return true
             }
 
-            return gestureRecognizer === emptyEditorTapRecognizer
+            return gestureRecognizer === emptyEditorTapRecognizer || gestureRecognizer === variableTapRecognizer
         }
 
         func insertToken(_ token: String, into container: EditorContainerView) {
@@ -3089,17 +3379,31 @@ struct ScratchpadTextView: UIViewRepresentable {
             return regex.matches(in: text, range: NSRange(location: 0, length: (text as NSString).length)).map(\.range)
         }
 
-        private func assignedVariableNames(in text: String) -> [String] {
-            guard let regex = try? NSRegularExpression(pattern: #"^\s*([A-Za-z_]\w*)\s*="#, options: [.anchorsMatchLines]) else {
-                return []
+        private func userDefinedVariableTokenAtPoint(_ point: CGPoint, in textView: UITextView) -> String? {
+            let containerPoint = CGPoint(
+                x: point.x - textView.textContainerInset.left,
+                y: point.y - textView.textContainerInset.top
+            )
+
+            guard containerPoint.x >= 0, containerPoint.y >= 0 else {
+                return nil
             }
-            let nsText = text as NSString
-            return regex.matches(in: text, range: NSRange(location: 0, length: nsText.length)).compactMap { match in
-                guard match.numberOfRanges > 1 else {
-                    return nil
-                }
-                return nsText.substring(with: match.range(at: 1))
+
+            let layoutManager = textView.layoutManager
+            let textContainer = textView.textContainer
+            let glyphIndex = layoutManager.glyphIndex(for: containerPoint, in: textContainer)
+            guard glyphIndex < layoutManager.numberOfGlyphs else {
+                return nil
             }
+
+            var lineRange = NSRange(location: 0, length: 0)
+            let lineRect = layoutManager.lineFragmentUsedRect(forGlyphAt: glyphIndex, effectiveRange: &lineRange)
+            guard lineRect.contains(containerPoint) else {
+                return nil
+            }
+
+            let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+            return userDefinedVariableToken(in: textView.text ?? "", at: characterIndex)
         }
 
         private func keepCaretVisible(in textView: UITextView) {
@@ -3263,12 +3567,28 @@ struct ScratchpadTextView: UIViewRepresentable {
     }
 }
 
+@available(iOS 16.0, *)
+extension ResultsTextView.ResultsCoordinator: UIEditMenuInteractionDelegate {
+    func editMenuInteraction(
+        _ interaction: UIEditMenuInteraction,
+        menuFor configuration: UIEditMenuConfiguration,
+        suggestedActions: [UIMenuElement]
+    ) -> UIMenu? {
+        UIMenu(children: suggestedActions)
+    }
+}
+
 final class ResultsContainerView: UIView {
     let scrollView = UIScrollView()
     let textView = NonWrappingTextView()
     let tapOverlay = UIView()
     let textViewWidthConstraint: NSLayoutConstraint
     private var isUpdatingResultsWidth = false
+    var copyText: String?
+
+    override var canBecomeFirstResponder: Bool {
+        copyText != nil
+    }
 
     override init(frame: CGRect) {
         textViewWidthConstraint = textView.widthAnchor.constraint(equalToConstant: 320)
@@ -3280,6 +3600,14 @@ final class ResultsContainerView: UIView {
         textViewWidthConstraint = textView.widthAnchor.constraint(equalToConstant: 320)
         super.init(coder: coder)
         configure()
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        action == #selector(copy(_:)) && copyText != nil
+    }
+
+    override func copy(_ sender: Any?) {
+        UIPasteboard.general.string = copyText
     }
 
     func updateResultsWidth(_ width: CGFloat) {
@@ -3326,7 +3654,7 @@ final class ResultsContainerView: UIView {
         textView.translatesAutoresizingMaskIntoConstraints = false
         tapOverlay.translatesAutoresizingMaskIntoConstraints = false
         tapOverlay.backgroundColor = .clear
-        tapOverlay.isUserInteractionEnabled = false
+        tapOverlay.isUserInteractionEnabled = true
 
         addSubview(scrollView)
         scrollView.addSubview(textView)
@@ -3376,7 +3704,7 @@ struct ResultsTextView: UIViewRepresentable {
         textView.accessibilityIdentifier = "results.view"
         textView.clipsToBounds = true
         textView.isEditable = false
-        textView.isSelectable = false
+        textView.isSelectable = true
         textView.isScrollEnabled = true
         textView.isUserInteractionEnabled = false
         textView.keepsWideTextContainer = true
@@ -3396,10 +3724,15 @@ struct ResultsTextView: UIViewRepresentable {
         scrollBridge.registerResults(textView: textView)
         context.coordinator.container = container
         context.coordinator.installHorizontalPanIfNeeded(in: container)
+        context.coordinator.installEditMenuIfNeeded(in: container)
 
         let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(ResultsCoordinator.handleTap(_:)))
         tapGesture.cancelsTouchesInView = false
-        container.scrollView.addGestureRecognizer(tapGesture)
+        let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(ResultsCoordinator.handleLongPress(_:)))
+        longPressGesture.minimumPressDuration = 0.32
+        tapGesture.require(toFail: longPressGesture)
+        container.tapOverlay.addGestureRecognizer(tapGesture)
+        container.tapOverlay.addGestureRecognizer(longPressGesture)
         return container
     }
 
@@ -3408,6 +3741,7 @@ struct ResultsTextView: UIViewRepresentable {
             context.coordinator.results = results
             context.coordinator.container = uiView
             context.coordinator.installHorizontalPanIfNeeded(in: uiView)
+            context.coordinator.installEditMenuIfNeeded(in: uiView)
             scrollBridge.registerResults(textView: uiView.textView)
             uiView.textView.font = ScratchpadStyle.font
             uiView.textView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: ScratchpadStyle.extraBottomScrollInset, right: 0)
@@ -3434,6 +3768,7 @@ struct ResultsTextView: UIViewRepresentable {
         weak var container: ResultsContainerView?
         private let onInsertLineReference: (Int) -> Void
         private weak var horizontalPanRecognizer: UIPanGestureRecognizer?
+        private weak var editMenuInteraction: UIEditMenuInteraction?
         private var horizontalPanStartOffsetX: CGFloat = 0
 
         init(results: [LineResult], scrollOffset: Binding<CGFloat>, scrollBridge: ScrollSyncBridge, onInsertLineReference: @escaping (Int) -> Void) {
@@ -3452,13 +3787,22 @@ struct ResultsTextView: UIViewRepresentable {
             horizontalPanRecognizer = panRecognizer
         }
 
+        func installEditMenuIfNeeded(in container: ResultsContainerView) {
+            guard editMenuInteraction == nil else { return }
+            let interaction = UIEditMenuInteraction(delegate: self)
+            container.addInteraction(interaction)
+            editMenuInteraction = interaction
+        }
+
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let container else {
                 return
             }
 
-            let point = gesture.location(in: container.scrollView)
-            let textPoint = container.scrollView.convert(point, to: container.textView)
+            clearSelection(in: container)
+
+            let point = gesture.location(in: container.tapOverlay)
+            let textPoint = container.tapOverlay.convert(point, to: container.textView)
             guard let lineNumber = lineNumber(at: textPoint, in: container.textView) else {
                 return
             }
@@ -3471,6 +3815,36 @@ struct ResultsTextView: UIViewRepresentable {
             }
 
             onInsertLineReference(lineNumber)
+        }
+
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began, let container else {
+                return
+            }
+
+            let point = gesture.location(in: container.tapOverlay)
+            let textPoint = container.tapOverlay.convert(point, to: container.textView)
+            guard let lineNumber = lineNumber(at: textPoint, in: container.textView),
+                  let result = results.first(where: { $0.lineNumber == lineNumber }),
+                  result.error == nil,
+                  !result.display.isEmpty,
+                  let lineRange = lineRange(for: lineNumber, in: container.textView)
+            else {
+                clearSelection(in: container)
+                return
+            }
+
+            container.textView.selectedRange = lineRange
+            container.copyText = result.display
+            container.becomeFirstResponder()
+
+            let targetRect = selectionRect(for: lineRange, in: container.textView)
+            let sourcePoint = container.textView.convert(
+                CGPoint(x: targetRect.midX, y: targetRect.midY),
+                to: container
+            )
+            let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: sourcePoint)
+            editMenuInteraction?.presentEditMenu(with: configuration)
         }
 
         @objc private func handleHorizontalPan(_ gesture: UIPanGestureRecognizer) {
@@ -3513,6 +3887,12 @@ struct ResultsTextView: UIViewRepresentable {
             gestureRecognizer === horizontalPanRecognizer
         }
 
+        private func clearSelection(in container: ResultsContainerView) {
+            container.textView.selectedRange = NSRange(location: 0, length: 0)
+            container.copyText = nil
+            container.resignFirstResponder()
+        }
+
         private func lineNumber(at point: CGPoint, in textView: UITextView) -> Int? {
             let containerPoint = CGPoint(
                 x: point.x - textView.textContainerInset.left,
@@ -3547,6 +3927,47 @@ struct ResultsTextView: UIViewRepresentable {
                     count += 1
                 }
             }
+        }
+
+        private func lineRange(for lineNumber: Int, in textView: UITextView) -> NSRange? {
+            guard lineNumber > 0 else {
+                return nil
+            }
+
+            let nsText = (textView.text ?? "") as NSString
+            var location = 0
+
+            for currentLine in 1...lineNumber {
+                if location > nsText.length {
+                    return nil
+                }
+
+                var lineStart = 0
+                var lineEnd = 0
+                var contentsEnd = 0
+                nsText.getLineStart(&lineStart, end: &lineEnd, contentsEnd: &contentsEnd, for: NSRange(location: location, length: 0))
+
+                if currentLine == lineNumber {
+                    return NSRange(location: lineStart, length: max(0, contentsEnd - lineStart))
+                }
+
+                if lineEnd <= location {
+                    break
+                }
+                location = lineEnd
+            }
+
+            return nil
+        }
+
+        private func selectionRect(for range: NSRange, in textView: UITextView) -> CGRect {
+            guard range.length > 0 else {
+                return .zero
+            }
+
+            let glyphRange = textView.layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let rect = textView.layoutManager.boundingRect(forGlyphRange: glyphRange, in: textView.textContainer)
+            return rect.offsetBy(dx: textView.textContainerInset.left, dy: textView.textContainerInset.top)
         }
     }
 }

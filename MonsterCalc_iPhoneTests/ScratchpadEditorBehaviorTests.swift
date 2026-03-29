@@ -3,6 +3,18 @@ import XCTest
 @testable import MonsterCalc_iPhone
 
 final class ScratchpadEditorBehaviorTests: XCTestCase {
+    func testAssignedVariableNamesReturnsEachDeclaredVariable() {
+        let variableNames = assignedVariableNames(
+            in: """
+            alpha = 5
+            beta = alpha + 1
+            _temp = beta
+            """
+        )
+
+        XCTAssertEqual(variableNames, ["alpha", "beta", "_temp"])
+    }
+
     func testFormattedInsertedTokenAddsOneSpaceOnBothSidesOfOperator() {
         let textView = UITextView()
         textView.text = "1"
@@ -41,6 +53,39 @@ final class ScratchpadEditorBehaviorTests: XCTestCase {
         let token = formattedInsertedToken("+", in: textView, operatorAutospaceEnabled: false)
 
         XCTAssertEqual(token, "+")
+    }
+
+    func testUserDefinedVariableTokenReturnsAssignedVariableOnly() {
+        let token = userDefinedVariableToken(
+            in: """
+            alpha = 5
+            beta = alpha + 1
+            """,
+            at: 17
+        )
+
+        XCTAssertEqual(token, "alpha")
+    }
+
+    func testUserDefinedVariableTokenReturnsNilOutsideTokenCharacters() {
+        let token = userDefinedVariableToken(
+            in: """
+            alpha = 5
+            beta = alpha + 1
+            """,
+            at: 16
+        )
+
+        XCTAssertNil(token)
+    }
+
+    func testUserDefinedVariableTokenIgnoresBuiltInSymbolNames() {
+        let token = userDefinedVariableToken(
+            in: "alpha = 5\nans + alpha",
+            at: 10
+        )
+
+        XCTAssertNil(token)
     }
 
     func testSteppedOverClosingParenCursorLocationAdvancesOverExistingParen() {
